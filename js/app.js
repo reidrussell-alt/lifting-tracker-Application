@@ -1,4 +1,5 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
+import { showWelcomeScreen } from './welcome.js';
 import { renderProgress, updateMuscleGroupExercise, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar } from './progress.js';
 import { startSession, renderSession, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, updateExerciseNote } from './session.js';
 import { renderPlan } from './plan.js';
@@ -58,6 +59,7 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost' && locatio
 
 loadData();
 renderPlan();
+showWelcomeScreen();
 
 window.addEventListener('resize', () => {
   if (document.getElementById('progressPage').classList.contains('active')) {

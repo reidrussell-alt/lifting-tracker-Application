@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lift-tracker-v3';
+const CACHE_NAME = 'lift-tracker-v4';
 
 const ASSETS = [
   './',
@@ -12,6 +12,7 @@ const ASSETS = [
   './js/charts.js',
   './js/utils.js',
   './js/program.js',
+  './js/welcome.js',
   './manifest.json',
 ];
 

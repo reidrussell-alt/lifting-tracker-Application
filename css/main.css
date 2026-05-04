@@ -867,3 +867,140 @@ body { padding-bottom: 60px; }
   font-style: italic;
   line-height: 1.4;
 }
+
+/* ===== WELCOME SCREEN ===== */
+#welcomeScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  background: #070707;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: opacity 400ms ease;
+  overflow: hidden;
+}
+
+#welcomeScreen::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  left: -80px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(212, 255, 58, 0.055) 0%, transparent 65%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+#welcomeScreen.visible { display: flex; }
+#welcomeScreen.fading  { opacity: 0; }
+
+.welcome-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+
+.welcome-logo-wrap {
+  margin-top: 26vh;
+  animation: wFadeScale 500ms ease-out both;
+  animation-delay: 0ms;
+}
+
+.welcome-logo {
+  width: 64px;
+  height: 56px;
+}
+
+.welcome-logo svg { width: 100%; height: 100%; }
+
+.welcome-content {
+  margin-top: 9vh;
+  text-align: center;
+  padding: 0 36px;
+}
+
+.welcome-greeting {
+  font-family: 'Archivo Black', sans-serif;
+  line-height: 1.15;
+  margin-bottom: 14px;
+  animation: wFadeIn 400ms ease-out both;
+  animation-delay: 180ms;
+}
+
+.welcome-greeting-text {
+  font-size: clamp(26px, 7vw, 36px);
+  color: #f4f4f4;
+}
+
+.welcome-name {
+  font-size: clamp(32px, 8.5vw, 44px);
+  color: var(--accent);
+}
+
+.welcome-tagline {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: clamp(13px, 3.5vw, 16px);
+  color: #6e6e6e;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  margin-bottom: 28px;
+  animation: wFadeIn 400ms ease-out both;
+  animation-delay: 330ms;
+}
+
+.welcome-label-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: wFadeIn 400ms ease-out both;
+  animation-delay: 450ms;
+}
+
+.welcome-label-line {
+  flex: 0 0 28px;
+  height: 1px;
+  background: rgba(212, 255, 58, 0.3);
+}
+
+.welcome-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.welcome-hint {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 20px) + 28px);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #444;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  animation: wFadeIn 400ms ease-out both;
+  animation-delay: 650ms;
+}
+
+@keyframes wFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes wFadeScale {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
