@@ -79,11 +79,9 @@ export function showWelcomeScreen() {
   const dismiss = () => {
     if (dismissed) return;
     dismissed = true;
-    clearTimeout(autoTimer);
     el.classList.add('fading');
     el.addEventListener('transitionend', () => el.remove(), { once: true });
   };
 
   el.addEventListener('click', dismiss, { once: true });
-  const autoTimer = setTimeout(dismiss, 2500);
 }
