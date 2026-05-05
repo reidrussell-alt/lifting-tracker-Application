@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lift-tracker-v4';
+const CACHE_NAME = 'lift-tracker-v5';
 
 const ASSETS = [
   './',
@@ -13,6 +13,10 @@ const ASSETS = [
   './js/utils.js',
   './js/program.js',
   './js/welcome.js',
+  './js/exerciseLibrary.js',
+  './js/programTemplates.js',
+  './js/onboarding.js',
+  './js/settings.js',
   './manifest.json',
 ];
 
@@ -33,7 +37,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Cache-first for app assets, network-first for Google Fonts
   if (event.request.url.includes('fonts.googleapis.com') || event.request.url.includes('fonts.gstatic.com')) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))

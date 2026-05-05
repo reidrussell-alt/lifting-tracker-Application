@@ -1,5 +1,5 @@
 import { state, saveData } from './data.js';
-import { program } from './program.js';
+import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
 import { todayDateString, formatDate, showToast } from './utils.js';
 
 export function getLastPerformance(exerciseId) {
@@ -19,8 +19,12 @@ export function getSuggestion(exercise) {
   const validSets = last.exercise.sets.filter(s => s.reps !== '' && (s.weight !== '' || exercise.loadType === 'bw'));
   if (validSets.length === 0) return null;
 
-  const repRangeMatch = exercise.repRange.match(/(\d+)-(\d+)/);
-  const topRep = repRangeMatch ? parseInt(repRangeMatch[2]) : 10;
+  let topRep = 10;
+  if (exercise.repRange) {
+    const m = exercise.repRange.match(/(\d+)-(\d+)/);
+    if (m) topRep = parseInt(m[2]);
+  }
+
   const sortedByWeight = [...validSets].sort((a, b) => parseFloat(b.weight || 0) - parseFloat(a.weight || 0));
   const topSet = sortedByWeight[0];
 
@@ -33,8 +37,9 @@ export function getSuggestion(exercise) {
   const lastWeight = parseFloat(topSet.weight);
   const lastTopReps = parseInt(topSet.reps);
   const allHitTop = validSets.every(s => parseInt(s.reps) >= topRep);
+  const targetSets = exercise.targetSets || 3;
 
-  if (allHitTop && validSets.length >= exercise.targetSets - 1) {
+  if (allHitTop && validSets.length >= targetSets - 1) {
     return { msg: `Bump up: ${lastWeight} → ${lastWeight + 5} lb` };
   }
   return { msg: `Last: ${lastWeight} × ${lastTopReps}` };
@@ -55,32 +60,36 @@ export function getLastExerciseNote(exerciseId) {
   const last = getLastPerformance(exerciseId);
   if (!last) return null;
   const { session, exercise: ex } = last;
-
   if (ex.note) return { date: formatDate(session.date), note: ex.note };
-
   const setNotes = ex.sets
     .map((s, i) => s.note ? `Set ${i + 1}: ${s.note}` : null)
     .filter(Boolean);
   if (setNotes.length > 0) return { date: formatDate(session.date), note: setNotes.join(' | ') };
-
   return null;
 }
 
 export function startSession(dayId) {
-  const day = program.days.find(d => d.id === dayId);
+  const activeProgram = state.programs.find(p => p.isActive);
+  if (!activeProgram) { window.switchTab('plan'); return; }
+
+  const day = activeProgram.days.find(d => d.id === dayId);
+  if (!day) return;
+
   state.currentSession = {
+    programId: activeProgram.id,
+    programName: activeProgram.name,
     dayId,
-    dayTitle: day.title,
-    tag: day.tag,
-    type: day.type,
+    dayTitle: day.name,
+    tag: day.type || 'LIFT',
     bw: '',
     date: todayDateString(),
     startedAt: new Date().toISOString(),
+    isTrackAsYouGo: false,
     exercises: day.exercises.map(ex => ({
       id: ex.id,
       name: ex.name,
       loadType: ex.loadType,
-      repRange: ex.repRange,
+      repRange: ex.repRange || '',
       targetSets: ex.sets,
       note: '',
       sets: Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
@@ -95,23 +104,47 @@ export function startSession(dayId) {
   renderSession();
 }
 
+export function startTrackAsYouGoWorkout() {
+  const today = new Date();
+  state.currentSession = {
+    programId: null,
+    programName: 'Track As You Go',
+    dayId: `workout_${Date.now()}`,
+    dayTitle: today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+    tag: 'TRACK',
+    bw: '',
+    date: todayDateString(),
+    startedAt: today.toISOString(),
+    isTrackAsYouGo: true,
+    exercises: []
+  };
+
+  const lastSession = [...state.history].reverse()[0];
+  if (lastSession && lastSession.bw) state.currentSession.bw = lastSession.bw;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('sessionPage').classList.add('active');
+  renderSession();
+}
+
 export function renderSession() {
   const sess = state.currentSession;
   const el = document.getElementById('sessionPage');
+  const metaTag = (sess.tag || 'LIFT').toUpperCase();
 
   let html = `
     <div class="session-header">
       <div class="session-header-top">
         <div>
           <div class="session-day-name">${sess.dayTitle}</div>
-          <div class="session-meta-row">${sess.tag.toUpperCase()} · ${sess.exercises.length} EXERCISES</div>
+          <div class="session-meta-row">${metaTag} · ${sess.exercises.length} EXERCISE${sess.exercises.length !== 1 ? 'S' : ''}</div>
         </div>
         <button class="back-btn" onclick="abandonSession()">←</button>
       </div>
       <div class="bw-input-wrap">
         <span class="bw-label">Workout Date</span>
         <input type="date" class="bw-input" id="sessionDateInput" value="${sess.date}"
-               style="width: 150px; font-size: 12px;" onchange="updateSessionDate(this.value)">
+               style="width:150px;font-size:12px;" onchange="updateSessionDate(this.value)">
       </div>
       <div class="bw-input-wrap">
         <span class="bw-label">Bodyweight (lb)</span>
@@ -126,13 +159,20 @@ export function renderSession() {
     const suggestion = getSuggestion(ex);
     const lastInfo = getLastSetsString(ex.id);
     const lastNote = getLastExerciseNote(ex.id);
+    const targetSets = ex.targetSets || ex.sets.length;
+    const pillLabel = ex.repRange ? `${targetSets}×${ex.repRange}` : `${targetSets} sets`;
 
     html += `
-      <div class="exercise-block ${allLogged && ex.sets.length >= ex.targetSets ? 'complete' : ''}">
+      <div class="exercise-block ${allLogged && ex.sets.length >= targetSets ? 'complete' : ''}">
         <div class="exercise-header">
           <div class="exercise-name">
             <span>${ex.name}</span>
-            <span class="target-pill">${ex.targetSets}×${ex.repRange}</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="target-pill">${pillLabel}</span>
+              ${sess.isTrackAsYouGo ? `
+                <button onclick="removeExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;" title="Remove exercise">×</button>
+              ` : ''}
+            </div>
           </div>
           ${suggestion ? `
             <div class="suggestion">
@@ -140,7 +180,7 @@ export function renderSession() {
               <span>Suggestion: <strong>${suggestion.msg}</strong></span>
             </div>
           ` : `
-            <div class="suggestion" style="background: rgba(212, 255, 58, 0.04); color: var(--text-dimmer);">
+            <div class="suggestion" style="background:rgba(212,255,58,0.04);color:var(--text-dimmer);">
               <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span>First time — start at a comfortable weight</span>
             </div>
@@ -156,9 +196,9 @@ export function renderSession() {
     `;
 
     ex.sets.forEach((set, setIdx) => {
-      const isExtra = setIdx >= ex.targetSets;
+      const isExtra = setIdx >= targetSets;
       const rowCls = `set-row ${set.logged ? 'logged' : ''} ${ex.loadType === 'bw' ? 'bw-row' : ''} ${isExtra ? 'extra' : ''}`;
-      const setNumLabel = isExtra ? `+${setIdx - ex.targetSets + 1}` : (setIdx + 1);
+      const setNumLabel = isExtra ? `+${setIdx - targetSets + 1}` : (setIdx + 1);
       const noteBtnCls = `icon-btn ${set.note ? 'has-note' : ''}`;
 
       html += `
@@ -167,21 +207,18 @@ export function renderSession() {
           ${ex.loadType === 'bw' ? `
             <div class="set-input-wrap">
               <span class="set-input-label">Reps</span>
-              <input type="number" inputmode="numeric" class="set-input"
-                     value="${set.reps}" placeholder="—"
+              <input type="number" inputmode="numeric" class="set-input" value="${set.reps}" placeholder="—"
                      onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
             </div>
           ` : `
             <div class="set-input-wrap">
               <span class="set-input-label">Lb</span>
-              <input type="number" inputmode="decimal" class="set-input"
-                     value="${set.weight}" placeholder="—"
+              <input type="number" inputmode="decimal" class="set-input" value="${set.weight}" placeholder="—"
                      onchange="updateSet(${exIdx}, ${setIdx}, 'weight', this.value)">
             </div>
             <div class="set-input-wrap">
               <span class="set-input-label">Reps</span>
-              <input type="number" inputmode="numeric" class="set-input"
-                     value="${set.reps}" placeholder="—"
+              <input type="number" inputmode="numeric" class="set-input" value="${set.reps}" placeholder="—"
                      onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
             </div>
           `}
@@ -222,13 +259,15 @@ export function renderSession() {
     </div></div>`;
   });
 
+  if (sess.isTrackAsYouGo) {
+    html += `<button class="add-exercise-fab" onclick="showExercisePicker()">+ Add Exercise</button>`;
+  }
+
   html += `<button class="finish-btn" onclick="finishSession()">Finish & Save Session</button>`;
   el.innerHTML = html;
 }
 
-export function updateBw(val) {
-  state.currentSession.bw = val;
-}
+export function updateBw(val) { state.currentSession.bw = val; }
 
 export function updateSessionDate(val) {
   state.currentSession.date = val || todayDateString();
@@ -255,20 +294,102 @@ export function updateSet(exIdx, setIdx, field, value) {
 }
 
 export function toggleNote(exIdx, setIdx) {
-  const set = state.currentSession.exercises[exIdx].sets[setIdx];
-  set.noteOpen = !set.noteOpen;
+  state.currentSession.exercises[exIdx].sets[setIdx].noteOpen ^= true;
   renderSession();
 }
 
 export function toggleSetLogged(exIdx, setIdx) {
-  const set = state.currentSession.exercises[exIdx].sets[setIdx];
-  set.logged = !set.logged;
+  state.currentSession.exercises[exIdx].sets[setIdx].logged ^= true;
   renderSession();
 }
 
 export function addSet(exIdx) {
-  const ex = state.currentSession.exercises[exIdx];
-  ex.sets.push({ weight: '', reps: '', logged: false, note: '', noteOpen: false });
+  state.currentSession.exercises[exIdx].sets.push({ weight: '', reps: '', logged: false, note: '', noteOpen: false });
+  renderSession();
+}
+
+export function removeExercise(exIdx) {
+  if (state.currentSession.exercises.length <= 1 && !confirm('Remove the only exercise in this session?')) return;
+  state.currentSession.exercises.splice(exIdx, 1);
+  renderSession();
+}
+
+export function showExercisePicker() {
+  const grouped = {};
+  EXERCISE_LIBRARY.forEach(ex => {
+    if (!grouped[ex.muscleGroup]) grouped[ex.muscleGroup] = [];
+    grouped[ex.muscleGroup].push(ex);
+  });
+
+  const groupOrder = ['chest','back','shoulders','biceps','triceps','quads','hamstrings','glutes','calves','abs'];
+  const groupLabels = {
+    chest:'Chest', back:'Back', shoulders:'Shoulders', biceps:'Biceps',
+    triceps:'Triceps', quads:'Quads', hamstrings:'Hamstrings',
+    glutes:'Glutes', calves:'Calves', abs:'Core / Abs'
+  };
+
+  let listHtml = '';
+  groupOrder.forEach(mg => {
+    const exs = grouped[mg];
+    if (!exs || !exs.length) return;
+    listHtml += `
+      <div class="picker-group">
+        <div class="picker-group-label">${groupLabels[mg] || mg}</div>
+        ${exs.map(ex => `
+          <button class="picker-ex-btn" data-name="${ex.name.toLowerCase()}" data-group="${mg}"
+                  onclick="addExerciseToSession('${ex.id}')">
+            <span>${ex.name}</span>
+            <span class="picker-load-tag ${ex.loadType === 'bw' ? 'bw' : 'wt'}">${ex.loadType === 'bw' ? 'BW' : 'WT'}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  });
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg active';
+  modal.id = 'exercisePickerModal';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:480px;max-height:80vh;overflow-y:auto;text-align:left;" onclick="event.stopPropagation()">
+      <div class="modal-title" style="text-align:left;margin-bottom:12px;">Add Exercise</div>
+      <input type="text" id="exSearchInput" class="bw-input" style="width:100%;margin-bottom:16px;"
+             placeholder="Search exercises…" oninput="filterExercisePicker(this.value)">
+      <div id="pickerList">${listHtml}</div>
+    </div>
+  `;
+  modal.addEventListener('click', closeExercisePicker);
+  document.body.appendChild(modal);
+  document.getElementById('exSearchInput')?.focus();
+}
+
+export function filterExercisePicker(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.picker-ex-btn').forEach(btn => {
+    btn.style.display = btn.dataset.name.includes(q) ? '' : 'none';
+  });
+  document.querySelectorAll('.picker-group').forEach(group => {
+    const visible = [...group.querySelectorAll('.picker-ex-btn')].some(b => b.style.display !== 'none');
+    group.style.display = visible ? '' : 'none';
+  });
+}
+
+export function closeExercisePicker() {
+  document.getElementById('exercisePickerModal')?.remove();
+}
+
+export function addExerciseToSession(exerciseId) {
+  const ex = EXERCISE_LIBRARY.find(e => e.id === exerciseId);
+  if (!ex) return;
+  state.currentSession.exercises.push({
+    id: ex.id,
+    name: ex.name,
+    loadType: ex.loadType,
+    repRange: '',
+    targetSets: 3,
+    note: '',
+    sets: Array.from({ length: 3 }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
+  });
+  closeExercisePicker();
   renderSession();
 }
 
@@ -281,7 +402,9 @@ export function abandonSession() {
 
 export function finishSession() {
   const sess = state.currentSession;
-  const totalSets = sess.exercises.reduce((s, e) => s + e.targetSets, 0);
+  if (sess.exercises.length === 0) { showToast('No exercises added yet'); return; }
+
+  const totalSets = sess.exercises.reduce((s, e) => s + (e.targetSets || e.sets.length), 0);
   const loggedSets = sess.exercises.reduce((s, e) => s + e.sets.filter(set => set.logged).length, 0);
 
   if (loggedSets === 0) { showToast('No sets logged yet'); return; }
@@ -304,12 +427,14 @@ export function confirmFinishSession() {
     dayId: sess.dayId,
     dayTitle: sess.dayTitle,
     tag: sess.tag,
+    programId: sess.programId || null,
+    programName: sess.programName || null,
     bw: sess.bw,
     exercises: sess.exercises.map(ex => ({
       id: ex.id,
       name: ex.name,
       loadType: ex.loadType,
-      repRange: ex.repRange,
+      repRange: ex.repRange || '',
       note: ex.note || '',
       sets: ex.sets.filter(s => s.logged).map(s => ({
         weight: s.weight,

@@ -19,12 +19,14 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('plan')">Plan</button>
     <button class="tab" onclick="switchTab('progress')">Progress</button>
+    <button class="tab" onclick="switchTab('settings')">Settings</button>
   </div>
 </div>
 
 <div id="planPage" class="page active"></div>
 <div id="sessionPage" class="page"></div>
 <div id="progressPage" class="page"></div>
+<div id="settingsPage" class="page"></div>
 
 <div class="modal-bg" id="finishModal">
   <div class="modal">
@@ -65,6 +67,11 @@
 <div class="toast" id="toast"></div>
 
 <div id="welcomeScreen" aria-hidden="true"></div>
+
+<!-- Onboarding overlay — shown for brand new users -->
+<div id="onboardingContainer" class="onboarding-container">
+  <div id="onboardingBody"></div>
+</div>
 
 <script type="module" src="js/app.js"></script>
 </body>

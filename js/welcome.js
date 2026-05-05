@@ -1,14 +1,4 @@
 import { state } from './data.js';
-import { program } from './program.js';
-
-const USER_NAME = 'Reid';
-
-const WORKOUT_LABELS = {
-  upperA: 'UPPER A',
-  lowerA: 'LOWER A',
-  upperB: 'UPPER B',
-  lowerB: 'LOWER B',
-};
 
 export function getGreeting() {
   const h = new Date().getHours();
@@ -18,13 +8,19 @@ export function getGreeting() {
 }
 
 export function getWelcomeWorkoutLabel() {
-  const dayIds = program.days.map(d => d.id);
-  if (!state.history.length) return "TODAY'S SESSION";
+  if (!state.profile) return "TODAY'S SESSION";
+  if (state.profile.trainingMode === 'trackAsYouGo') return "TODAY'S WORKOUT";
+
+  const activeProgram = state.programs.find(p => p.isActive);
+  if (!activeProgram || !activeProgram.days.length) return "TODAY'S SESSION";
+
+  if (!state.history.length) return activeProgram.days[0].name.toUpperCase();
+
   const lastDayId = state.history[state.history.length - 1].dayId;
+  const dayIds = activeProgram.days.map(d => d.id);
   const lastIdx = dayIds.indexOf(lastDayId);
-  if (lastIdx === -1) return "TODAY'S SESSION";
-  const nextId = dayIds[(lastIdx + 1) % dayIds.length];
-  return WORKOUT_LABELS[nextId] ?? "TODAY'S SESSION";
+  if (lastIdx === -1) return activeProgram.days[0].name.toUpperCase();
+  return activeProgram.days[(lastIdx + 1) % dayIds.length].name.toUpperCase();
 }
 
 export function showWelcomeScreen() {
@@ -33,6 +29,7 @@ export function showWelcomeScreen() {
 
   const greeting = getGreeting();
   const workoutLabel = getWelcomeWorkoutLabel();
+  const name = state.profile?.name || '';
 
   el.innerHTML = `
     <div class="welcome-inner">
@@ -59,8 +56,8 @@ export function showWelcomeScreen() {
       </div>
       <div class="welcome-content">
         <div class="welcome-greeting">
-          <span class="welcome-greeting-text">${greeting},</span><br>
-          <span class="welcome-name">${USER_NAME}.</span>
+          <span class="welcome-greeting-text">${greeting}${name ? ',' : '.'}</span>
+          ${name ? `<br><span class="welcome-name">${name}.</span>` : ''}
         </div>
         <div class="welcome-tagline">Let's get after it.</div>
         <div class="welcome-label-wrap">

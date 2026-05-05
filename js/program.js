@@ -58,30 +58,50 @@ export const program = {
 };
 
 export const MUSCLE_GROUPS = {
-  // Chest
+  // Original program IDs
   incline_bench: 'chest', db_press: 'chest', dips: 'chest',
   pec_deck: 'chest', pec_deck_laying: 'chest',
   cable_crossover: 'chest', lateral_bench_machine: 'chest',
-  // Back
   pull_ups: 'back', lat_pulldown: 'back', t_bar: 'back',
   machine_t: 'back', iso_lateral_low_row: 'back', seated_row: 'back',
   rope_pulldown: 'back', upright_rows: 'back', back_extension: 'back',
-  // Shoulders
   shoulder_db_press: 'shoulders', db_press_b: 'shoulders',
   lateral_raises_a: 'shoulders', lateral_raises_b: 'shoulders',
   iso_shoulder_press: 'shoulders', face_pulls: 'shoulders',
-  // Biceps
   barbell_curl_a: 'biceps', barbell_curl_b: 'biceps',
   db_bicep_curl: 'biceps', machine_curl: 'biceps', rope_hammer_curl: 'biceps',
-  // Triceps
   tricep_ext_a: 'triceps', pushdowns: 'triceps', overhead_tri: 'triceps',
-  // Legs
   squat: 'legs', bulgarian_split: 'legs', leg_ext_a: 'legs', leg_ext_b: 'legs',
   hip_thrust: 'legs', leg_curls_a: 'legs', seated_leg_curl: 'legs',
   booty_builder: 'legs', standing_calf: 'legs', seated_calf: 'legs',
-  // Core / Abs
   hanging_leg_raise: 'core', cable_crunch: 'core', ab_wheel: 'core',
-  cable_woodchopper: 'core', steering_wheels: 'core'
+  cable_woodchopper: 'core', steering_wheels: 'core',
+
+  // Exercise library IDs (chest)
+  bench_press: 'chest', incline_db_press: 'chest', cable_fly: 'chest',
+  dips_chest: 'chest', pushups: 'chest',
+  // Exercise library IDs (back)
+  deadlift: 'back', barbell_row: 'back', db_row: 'back', tbar_row: 'back',
+  cable_row: 'back', pullups: 'back', chinups: 'back',
+  // Exercise library IDs (shoulders)
+  ohp: 'shoulders', db_shoulder_press: 'shoulders', lateral_raise: 'shoulders',
+  front_raise: 'shoulders', rear_delt_fly: 'shoulders', arnold_press: 'shoulders',
+  cable_lateral_raise: 'shoulders',
+  // Exercise library IDs (biceps)
+  barbell_curl: 'biceps', db_curl: 'biceps', hammer_curl: 'biceps',
+  preacher_curl: 'biceps', cable_curl: 'biceps', concentration_curl: 'biceps',
+  // Exercise library IDs (triceps)
+  close_grip_bench: 'triceps', tricep_pushdown: 'triceps',
+  overhead_tricep_ext: 'triceps', skull_crushers: 'triceps',
+  dips_tricep: 'triceps', tricep_kickback: 'triceps',
+  // Exercise library IDs (legs — quads, hamstrings, glutes, calves all → 'legs')
+  front_squat: 'legs', leg_press: 'legs', leg_extension: 'legs',
+  bulgarian_split_squat: 'legs', lunges: 'legs', hack_squat: 'legs',
+  rdl: 'legs', leg_curl: 'legs', good_mornings: 'legs', nordic_curl: 'legs',
+  glute_bridge: 'legs', cable_kickback: 'legs', step_ups: 'legs',
+  standing_calf_raise: 'legs', seated_calf_raise: 'legs', calf_press: 'legs',
+  // Exercise library IDs (core)
+  plank: 'core', pallof_press: 'core', russian_twist: 'core',
 };
 
 export const MUSCLE_GROUP_ORDER = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'core'];

@@ -1,14 +1,17 @@
 import { state, saveData } from './data.js';
-import { program, MUSCLE_GROUPS, MUSCLE_GROUP_ORDER, MUSCLE_GROUP_META } from './program.js';
+import { MUSCLE_GROUPS, MUSCLE_GROUP_ORDER, MUSCLE_GROUP_META } from './program.js';
 import { formatDate, formatDateShort, isoDateOnly, showToast } from './utils.js';
 import { drawSingleLineChart } from './charts.js';
 
-const WORKOUT_COLORS = {
-  upperA: { color: '#ff6b35', label: 'Upper A' },
-  lowerA: { color: '#d4ff3a', label: 'Lower A' },
-  upperB: { color: '#3a9eff', label: 'Upper B' },
-  lowerB: { color: '#b86bff', label: 'Lower B' },
-};
+const FALLBACK_COLORS = ['#ff6b35','#d4ff3a','#3a9eff','#b86bff','#4ade80','#f472b6','#fb923c','#60a5fa'];
+
+function dayColor(dayId) {
+  const known = { upperA:'#ff6b35', lowerA:'#d4ff3a', upperB:'#3a9eff', lowerB:'#b86bff' };
+  if (known[dayId]) return known[dayId];
+  let h = 0;
+  for (const c of dayId) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
+  return FALLBACK_COLORS[h % FALLBACK_COLORS.length];
+}
 
 let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
@@ -33,7 +36,24 @@ function renderCalendar() {
     sessionsByDate[key].push(sess);
   });
 
+  // Build legend from days that actually appear this month
+  const monthLegend = {};
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const key = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    (sessionsByDate[key] || []).forEach(s => {
+      if (!monthLegend[s.dayId]) {
+        monthLegend[s.dayId] = { color: dayColor(s.dayId), label: s.dayTitle || s.dayId };
+      }
+    });
+  }
+
   const monthLabel = firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const legendHtml = Object.values(monthLegend).map(({ color, label }) => `
+    <span class="cal-legend-item">
+      <span class="cal-legend-dot" style="background:${color};"></span>
+      <span>${label}</span>
+    </span>
+  `).join('');
 
   let html = `
     <div class="chart-card calendar-card">
@@ -42,14 +62,7 @@ function renderCalendar() {
         <div class="calendar-month-label">${monthLabel}</div>
         <button class="cal-nav-btn" onclick="navigateCalendar(1)">&#8594;</button>
       </div>
-      <div class="calendar-legend">
-        ${Object.entries(WORKOUT_COLORS).map(([, { color, label }]) => `
-          <span class="cal-legend-item">
-            <span class="cal-legend-dot" style="background:${color};"></span>
-            <span>${label}</span>
-          </span>
-        `).join('')}
-      </div>
+      ${legendHtml ? `<div class="calendar-legend">${legendHtml}</div>` : ''}
       <div class="calendar-grid">
         ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="cal-dow">${d}</div>`).join('')}
   `;
@@ -69,10 +82,9 @@ function renderCalendar() {
       <div class="cal-day${isToday ? ' cal-day--today' : ''}">
         <span class="cal-day-num">${d}</span>
         <div class="cal-dots">
-          ${sessions.map(s => {
-            const wc = WORKOUT_COLORS[s.dayId];
-            return wc ? `<span class="cal-dot" style="background:${wc.color};" title="${wc.label}"></span>` : '';
-          }).join('')}
+          ${sessions.map(s =>
+            `<span class="cal-dot" style="background:${dayColor(s.dayId)};" title="${s.dayTitle || s.dayId}"></span>`
+          ).join('')}
         </div>
       </div>
     `;
@@ -101,9 +113,9 @@ export function renderProgress() {
     s + h.exercises.reduce((es, ex) => es + ex.sets.length, 0), 0);
 
   const sessionsByDay = {};
-  program.days.forEach(d => sessionsByDay[d.id] = 0);
   state.history.forEach(h => {
-    if (sessionsByDay[h.dayId] !== undefined) sessionsByDay[h.dayId]++;
+    if (!sessionsByDay[h.dayId]) sessionsByDay[h.dayId] = { count: 0, title: h.dayTitle || h.dayId };
+    sessionsByDay[h.dayId].count++;
   });
 
   const mostRecent = [...state.history].reverse().find(h => h.bw);
@@ -150,7 +162,7 @@ export function renderProgress() {
           <div class="stat-value" style="font-size: 16px; font-family: 'Inter Tight'; font-weight: 900;">
             ${getMostTrainedDay(sessionsByDay)}
           </div>
-          <div class="stat-sub">${Math.max(...Object.values(sessionsByDay), 0)} sessions</div>
+          <div class="stat-sub">${Math.max(...Object.values(sessionsByDay).map(s => s.count), 0)} sessions</div>
         </div>
       </div>
     </div>
@@ -323,11 +335,9 @@ export function renderBwChart(bwData) {
 }
 
 export function getMostTrainedDay(sessionsByDay) {
-  const max = Math.max(...Object.values(sessionsByDay), 0);
-  if (max === 0) return '—';
-  const dayId = Object.entries(sessionsByDay).find(([k, v]) => v === max)[0];
-  const day = program.days.find(d => d.id === dayId);
-  return day ? day.title : '—';
+  if (!Object.keys(sessionsByDay).length) return '—';
+  const best = Object.values(sessionsByDay).reduce((a, b) => b.count > a.count ? b : a);
+  return best.count > 0 ? best.title : '—';
 }
 
 export function analyzeTrend(exerciseData) {
