@@ -1,3 +1,5 @@
+import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
+
 export const program = {
   days: [
     {
@@ -20,7 +22,7 @@ export const program = {
       exercises: [
         { id: 'squat', name: 'Squat', sets: 3, repRange: '6-10', loadType: 'weight' },
         { id: 'bulgarian_split', name: 'Bulgarian Split Squat', sets: 2, repRange: '6-10', loadType: 'weight' },
-        { id: 'leg_ext_a', name: 'Leg Extensions', sets: 2, repRange: '10-15', loadType: 'weight' },
+        { id: 'leg_extension', name: 'Leg Extensions', sets: 2, repRange: '10-15', loadType: 'weight' },
         { id: 'leg_curls_a', name: 'Leg Curls', sets: 3, repRange: '10-15', loadType: 'weight' },
         { id: 'standing_calf', name: 'Standing Calf Raises', sets: 2, repRange: '10-15', loadType: 'weight' },
         { id: 'hanging_leg_raise', name: 'Hanging Leg Raises', sets: 3, repRange: '8-12', loadType: 'bw' },
@@ -48,7 +50,7 @@ export const program = {
         { id: 'seated_leg_curl', name: 'Seated Leg Curl', sets: 3, repRange: '8-12', loadType: 'weight' },
         { id: 'hip_thrust', name: 'Hip Thrust', sets: 3, repRange: '6-10', loadType: 'weight' },
         { id: 'back_extension', name: '45° Back Extension', sets: 3, repRange: '10-15', loadType: 'weight' },
-        { id: 'leg_ext_b', name: 'Leg Extensions', sets: 2, repRange: '10-15', loadType: 'weight' },
+        { id: 'leg_extension', name: 'Leg Extensions', sets: 2, repRange: '10-15', loadType: 'weight' },
         { id: 'seated_calf', name: 'Seated Calf Raises', sets: 2, repRange: '10-15', loadType: 'weight' },
         { id: 'ab_wheel', name: 'Ab Wheel Rollouts', sets: 3, repRange: '6-10', loadType: 'bw' },
         { id: 'cable_woodchopper', name: 'Cable Push-Outs', sets: 3, repRange: '10-15/side', loadType: 'weight' }
@@ -57,62 +59,36 @@ export const program = {
   ]
 };
 
-export const MUSCLE_GROUPS = {
-  // Original program IDs
-  incline_bench: 'chest', db_press: 'chest', dips: 'chest',
-  pec_deck: 'chest', pec_deck_laying: 'chest',
-  cable_crossover: 'chest', lateral_bench_machine: 'chest',
-  pull_ups: 'back', lat_pulldown: 'back', t_bar: 'back',
-  machine_t: 'back', iso_lateral_low_row: 'back', seated_row: 'back',
-  rope_pulldown: 'back', upright_rows: 'back', back_extension: 'back',
+// Maps fine-grained library muscle groups to the 7 chart-level groups.
+// Any library muscleGroup not listed here passes through unchanged.
+const CHART_GROUP_NORM = {
+  quads: 'legs', hamstrings: 'legs', glutes: 'legs', calves: 'legs', abs: 'core'
+};
+
+// Program-specific exercise IDs that aren't in EXERCISE_LIBRARY (custom IDs,
+// legacy variants, or machine-specific exercises without library equivalents).
+const PROGRAM_EXERCISE_GROUPS = {
+  dips: 'chest', pec_deck_laying: 'chest', cable_crossover: 'chest', lateral_bench_machine: 'chest',
+  pull_ups: 'back', t_bar: 'back', machine_t: 'back', iso_lateral_low_row: 'back',
+  seated_row: 'back', rope_pulldown: 'back', upright_rows: 'back', back_extension: 'back',
   shoulder_db_press: 'shoulders', db_press_b: 'shoulders',
-  lateral_raises_a: 'shoulders', lateral_raises_b: 'shoulders',
-  iso_shoulder_press: 'shoulders', face_pulls: 'shoulders',
+  lateral_raises_a: 'shoulders', lateral_raises_b: 'shoulders', iso_shoulder_press: 'shoulders',
   barbell_curl_a: 'biceps', barbell_curl_b: 'biceps',
   db_bicep_curl: 'biceps', machine_curl: 'biceps', rope_hammer_curl: 'biceps',
   tricep_ext_a: 'triceps', pushdowns: 'triceps', overhead_tri: 'triceps',
-  squat: 'legs', bulgarian_split: 'legs', leg_ext_a: 'legs', leg_ext_b: 'legs',
-  hip_thrust: 'legs', leg_curls_a: 'legs', seated_leg_curl: 'legs',
-  booty_builder: 'legs', standing_calf: 'legs', seated_calf: 'legs',
-  hanging_leg_raise: 'core', cable_crunch: 'core', ab_wheel: 'core',
+  bulgarian_split: 'legs', leg_curls_a: 'legs', booty_builder: 'legs',
+  standing_calf: 'legs', seated_calf: 'legs',
   cable_woodchopper: 'core', steering_wheels: 'core',
-
-  // Exercise library IDs (chest)
-  bench_press: 'chest', incline_db_press: 'chest', cable_fly: 'chest',
-  dips_chest: 'chest', pushups: 'chest',
-  // Exercise library IDs (back)
-  deadlift: 'back', barbell_row: 'back', db_row: 'back', tbar_row: 'back',
-  cable_row: 'back', pullups: 'back', chinups: 'back',
-  // Exercise library IDs (shoulders)
-  ohp: 'shoulders', db_shoulder_press: 'shoulders', lateral_raise: 'shoulders',
-  front_raise: 'shoulders', rear_delt_fly: 'shoulders', arnold_press: 'shoulders',
-  cable_lateral_raise: 'shoulders',
-  // Exercise library IDs (biceps)
-  barbell_curl: 'biceps', db_curl: 'biceps', hammer_curl: 'biceps',
-  preacher_curl: 'biceps', cable_curl: 'biceps', concentration_curl: 'biceps',
-  // Exercise library IDs (triceps)
-  close_grip_bench: 'triceps', tricep_pushdown: 'triceps',
-  overhead_tricep_ext: 'triceps', skull_crushers: 'triceps',
-  dips_tricep: 'triceps', tricep_kickback: 'triceps',
-  // Exercise library IDs (legs — quads, hamstrings, glutes, calves all → 'legs')
-  front_squat: 'legs', leg_press: 'legs', leg_extension: 'legs',
-  bulgarian_split_squat: 'legs', lunges: 'legs', hack_squat: 'legs',
-  rdl: 'legs', leg_curl: 'legs', good_mornings: 'legs', nordic_curl: 'legs',
-  glute_bridge: 'legs', cable_kickback: 'legs', step_ups: 'legs',
-  standing_calf_raise: 'legs', seated_calf_raise: 'legs', calf_press: 'legs',
-  // Exercise library IDs (core)
-  plank: 'core', pallof_press: 'core', russian_twist: 'core',
+  // face_pulls is in the library as 'back'; we chart it under 'shoulders'
+  face_pulls: 'shoulders',
 };
 
-export const MUSCLE_GROUP_ORDER = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'core'];
-
-export const MUSCLE_GROUP_META = {
-  chest:     { label: 'Chest',     color: '#ff6b35' },
-  back:      { label: 'Back',      color: '#3a9eff' },
-  shoulders: { label: 'Shoulders', color: '#b86bff' },
-  biceps:    { label: 'Biceps',    color: '#4ade80' },
-  triceps:   { label: 'Triceps',   color: '#f472b6' },
-  legs:      { label: 'Legs',      color: '#d4ff3a' },
-  core:      { label: 'Core',      color: '#fbbf24' },
-  other:     { label: 'Other',     color: '#888888' }
+// Auto-derived from the exercise library so new additions don't need a
+// matching entry here. Program-specific entries override library entries.
+export const MUSCLE_GROUPS = {
+  ...Object.fromEntries(
+    EXERCISE_LIBRARY.map(ex => [ex.id, CHART_GROUP_NORM[ex.muscleGroup] ?? ex.muscleGroup])
+  ),
+  ...PROGRAM_EXERCISE_GROUPS,
 };
+

@@ -1,6 +1,6 @@
-import { state, saveData } from './data.js';
+import { state, saveData, saveCurrentSession } from './data.js';
 import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
-import { todayDateString, formatDate, showToast } from './utils.js';
+import { todayDateString, formatDate, showToast, showConfirm } from './utils.js';
 
 export function getLastPerformance(exerciseId) {
   for (let i = state.history.length - 1; i >= 0; i--) {
@@ -13,8 +13,7 @@ export function getLastPerformance(exerciseId) {
   return null;
 }
 
-export function getSuggestion(exercise) {
-  const last = getLastPerformance(exercise.id);
+export function getSuggestion(exercise, last = getLastPerformance(exercise.id)) {
   if (!last) return null;
   const validSets = last.exercise.sets.filter(s => s.reps !== '' && (s.weight !== '' || exercise.loadType === 'bw'));
   if (validSets.length === 0) return null;
@@ -45,8 +44,7 @@ export function getSuggestion(exercise) {
   return { msg: `Last: ${lastWeight} × ${lastTopReps}` };
 }
 
-export function getLastSetsString(exerciseId) {
-  const last = getLastPerformance(exerciseId);
+export function getLastSetsString(exerciseId, last = getLastPerformance(exerciseId)) {
   if (!last) return null;
   const dateStr = formatDate(last.session.date);
   const setsStr = last.exercise.sets
@@ -56,8 +54,7 @@ export function getLastSetsString(exerciseId) {
   return { date: dateStr, sets: setsStr };
 }
 
-export function getLastExerciseNote(exerciseId) {
-  const last = getLastPerformance(exerciseId);
+export function getLastExerciseNote(exerciseId, last = getLastPerformance(exerciseId)) {
   if (!last) return null;
   const { session, exercise: ex } = last;
   if (ex.note) return { date: formatDate(session.date), note: ex.note };
@@ -66,6 +63,11 @@ export function getLastExerciseNote(exerciseId) {
     .filter(Boolean);
   if (setNotes.length > 0) return { date: formatDate(session.date), note: setNotes.join(' | ') };
   return null;
+}
+
+function getLastBw() {
+  const last = state.history[state.history.length - 1];
+  return last?.bw || '';
 }
 
 export function startSession(dayId) {
@@ -81,7 +83,7 @@ export function startSession(dayId) {
     dayId,
     dayTitle: day.name,
     tag: day.type || 'LIFT',
-    bw: '',
+    bw: getLastBw(),
     date: todayDateString(),
     startedAt: new Date().toISOString(),
     isTrackAsYouGo: false,
@@ -96,9 +98,7 @@ export function startSession(dayId) {
     }))
   };
 
-  const lastSession = [...state.history].reverse()[0];
-  if (lastSession && lastSession.bw) state.currentSession.bw = lastSession.bw;
-
+  saveCurrentSession();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('sessionPage').classList.add('active');
   renderSession();
@@ -112,16 +112,14 @@ export function startTrackAsYouGoWorkout() {
     dayId: `workout_${Date.now()}`,
     dayTitle: today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
     tag: 'TRACK',
-    bw: '',
+    bw: getLastBw(),
     date: todayDateString(),
     startedAt: today.toISOString(),
     isTrackAsYouGo: true,
     exercises: []
   };
 
-  const lastSession = [...state.history].reverse()[0];
-  if (lastSession && lastSession.bw) state.currentSession.bw = lastSession.bw;
-
+  saveCurrentSession();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('sessionPage').classList.add('active');
   renderSession();
@@ -156,9 +154,10 @@ export function renderSession() {
 
   sess.exercises.forEach((ex, exIdx) => {
     const allLogged = ex.sets.every(s => s.logged);
-    const suggestion = getSuggestion(ex);
-    const lastInfo = getLastSetsString(ex.id);
-    const lastNote = getLastExerciseNote(ex.id);
+    const last = getLastPerformance(ex.id);
+    const suggestion = getSuggestion(ex, last);
+    const lastInfo = getLastSetsString(ex.id, last);
+    const lastNote = getLastExerciseNote(ex.id, last);
     const targetSets = ex.targetSets || ex.sets.length;
     const pillLabel = ex.repRange ? `${targetSets}×${ex.repRange}` : `${targetSets} sets`;
 
@@ -267,10 +266,11 @@ export function renderSession() {
   el.innerHTML = html;
 }
 
-export function updateBw(val) { state.currentSession.bw = val; }
+export function updateBw(val) { state.currentSession.bw = val; saveCurrentSession(); }
 
 export function updateSessionDate(val) {
   state.currentSession.date = val || todayDateString();
+  saveCurrentSession();
 }
 
 export function updateSet(exIdx, setIdx, field, value) {
@@ -291,6 +291,7 @@ export function updateSet(exIdx, setIdx, field, value) {
       if (checkBtn) checkBtn.classList.add('logged');
     }
   }
+  saveCurrentSession();
 }
 
 export function toggleNote(exIdx, setIdx) {
@@ -299,19 +300,41 @@ export function toggleNote(exIdx, setIdx) {
 }
 
 export function toggleSetLogged(exIdx, setIdx) {
-  state.currentSession.exercises[exIdx].sets[setIdx].logged ^= true;
-  renderSession();
+  const ex = state.currentSession.exercises[exIdx];
+  const set = ex.sets[setIdx];
+  set.logged ^= true;
+
+  const row = document.querySelector(`.set-row[data-ex="${exIdx}"][data-set="${setIdx}"]`);
+  if (!row) { renderSession(); return; }
+
+  row.classList.toggle('logged', set.logged);
+  const checkBtn = row.querySelectorAll('.icon-btn')[1];
+  if (checkBtn) checkBtn.classList.toggle('logged', set.logged);
+
+  const targetSets = ex.targetSets || ex.sets.length;
+  const allLogged = ex.sets.every(s => s.logged);
+  const block = row.closest('.exercise-block');
+  if (block) block.classList.toggle('complete', allLogged && ex.sets.length >= targetSets);
+  saveCurrentSession();
 }
 
 export function addSet(exIdx) {
   state.currentSession.exercises[exIdx].sets.push({ weight: '', reps: '', logged: false, note: '', noteOpen: false });
+  saveCurrentSession();
   renderSession();
 }
 
 export function removeExercise(exIdx) {
-  if (state.currentSession.exercises.length <= 1 && !confirm('Remove the only exercise in this session?')) return;
-  state.currentSession.exercises.splice(exIdx, 1);
-  renderSession();
+  const doRemove = () => {
+    state.currentSession.exercises.splice(exIdx, 1);
+    saveCurrentSession();
+    renderSession();
+  };
+  if (state.currentSession.exercises.length <= 1) {
+    showConfirm('Remove the only exercise in this session?', doRemove, 'Remove');
+  } else {
+    doRemove();
+  }
 }
 
 export function showExercisePicker() {
@@ -390,14 +413,16 @@ export function addExerciseToSession(exerciseId) {
     sets: Array.from({ length: 3 }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
   });
   closeExercisePicker();
+  saveCurrentSession();
   renderSession();
 }
 
 export function abandonSession() {
-  if (confirm('Discard this session?')) {
+  showConfirm('Discard this session?', () => {
     state.currentSession = null;
+    saveCurrentSession();
     window.switchTab('plan');
-  }
+  }, 'Discard');
 }
 
 export function finishSession() {
@@ -447,6 +472,7 @@ export function confirmFinishSession() {
   state.history.push(record);
   saveData();
   state.currentSession = null;
+  saveCurrentSession();
   showToast('Session saved 💪', 'success');
   window.switchTab('progress');
 }

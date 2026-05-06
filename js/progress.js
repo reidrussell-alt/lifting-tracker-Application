@@ -1,6 +1,7 @@
 import { state, saveData } from './data.js';
-import { MUSCLE_GROUPS, MUSCLE_GROUP_ORDER, MUSCLE_GROUP_META } from './program.js';
-import { formatDate, formatDateShort, isoDateOnly, showToast } from './utils.js';
+import { MUSCLE_GROUPS } from './program.js';
+import { MUSCLE_GROUP_ORDER, MUSCLE_GROUP_META } from './exerciseLibrary.js';
+import { formatDate, formatDateShort, isoDateOnly, showToast, showConfirm } from './utils.js';
 import { drawSingleLineChart } from './charts.js';
 
 const FALLBACK_COLORS = ['#ff6b35','#d4ff3a','#3a9eff','#b86bff','#4ade80','#f472b6','#fb923c','#60a5fa'];
@@ -20,7 +21,12 @@ export function navigateCalendar(dir) {
   calendarMonth += dir;
   if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
   if (calendarMonth < 0)  { calendarMonth = 11; calendarYear--; }
-  renderProgress();
+  const el = document.getElementById('calendarSection');
+  if (el) {
+    el.outerHTML = renderCalendar();
+  } else {
+    renderProgress();
+  }
 }
 
 function renderCalendar() {
@@ -56,7 +62,7 @@ function renderCalendar() {
   `).join('');
 
   let html = `
-    <div class="chart-card calendar-card">
+    <div class="chart-card calendar-card" id="calendarSection">
       <div class="calendar-nav">
         <button class="cal-nav-btn" onclick="navigateCalendar(-1)">&#8592;</button>
         <div class="calendar-month-label">${monthLabel}</div>
@@ -375,41 +381,35 @@ export function openEditModal(sessionIdx, exerciseIdx) {
   const dateStr = isoDateOnly(session.date);
 
   let html = `
-    <div style="margin-bottom: 16px;">
-      <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;">Workout Date</div>
-      <input type="date" id="editDateInput" value="${dateStr}"
-             style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;">
-      <div style="font-size: 10px; color: var(--text-dimmer); margin-top: 4px; font-style: italic;">Date applies to the whole workout session.</div>
+    <div class="edit-section">
+      <div class="edit-label">Workout Date</div>
+      <input type="date" id="editDateInput" value="${dateStr}" class="edit-date-input">
+      <div class="edit-helper">Date applies to the whole workout session.</div>
     </div>
-    <div style="margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase;">${exercise.name} — Sets</div>
+    <div class="edit-label" style="margin-bottom: 8px;">${exercise.name} — Sets</div>
   `;
 
   exercise.sets.forEach((set, i) => {
     if (exercise.loadType === 'bw') {
       html += `
-        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); font-weight: 700; width: 24px;">#${i + 1}</div>
-            <input type="number" inputmode="numeric" class="edit-reps" data-idx="${i}" value="${set.reps}" placeholder="reps"
-                   style="flex: 1; background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-align: center;">
+        <div class="edit-set-row">
+          <div class="edit-set-inputs">
+            <div class="edit-set-num">#${i + 1}</div>
+            <input type="number" inputmode="numeric" class="edit-reps edit-input" data-idx="${i}" value="${set.reps}" placeholder="reps">
           </div>
-          <textarea class="edit-note" data-idx="${i}" placeholder="Note..." rows="1"
-                    style="width: 100%; background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-family: 'Inter Tight', sans-serif; font-size: 11px; font-style: italic; resize: vertical; min-height: 30px;">${set.note || ''}</textarea>
+          <textarea class="edit-note" data-idx="${i}" placeholder="Note..." rows="1">${set.note || ''}</textarea>
         </div>
       `;
     } else {
       html += `
-        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); font-weight: 700; width: 24px;">#${i + 1}</div>
-            <input type="number" inputmode="decimal" class="edit-weight" data-idx="${i}" value="${set.weight}" placeholder="lb"
-                   style="flex: 1; background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-align: center;">
-            <span style="color: var(--text-dimmer); font-family: 'JetBrains Mono', monospace; font-size: 11px;">×</span>
-            <input type="number" inputmode="numeric" class="edit-reps" data-idx="${i}" value="${set.reps}" placeholder="reps"
-                   style="flex: 1; background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-align: center;">
+        <div class="edit-set-row">
+          <div class="edit-set-inputs">
+            <div class="edit-set-num">#${i + 1}</div>
+            <input type="number" inputmode="decimal" class="edit-weight edit-input" data-idx="${i}" value="${set.weight}" placeholder="lb">
+            <span class="edit-sep">×</span>
+            <input type="number" inputmode="numeric" class="edit-reps edit-input" data-idx="${i}" value="${set.reps}" placeholder="reps">
           </div>
-          <textarea class="edit-note" data-idx="${i}" placeholder="Note..." rows="1"
-                    style="width: 100%; background: var(--surface-3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-family: 'Inter Tight', sans-serif; font-size: 11px; font-style: italic; resize: vertical; min-height: 30px;">${set.note || ''}</textarea>
+          <textarea class="edit-note" data-idx="${i}" placeholder="Note..." rows="1">${set.note || ''}</textarea>
         </div>
       `;
     }
@@ -452,15 +452,16 @@ export function saveEdit() {
 
 export function deleteEditSession() {
   if (!state.editing) return;
-  if (!confirm('Delete this exercise from the workout? If it was the only exercise in the session, the whole session will be removed.')) return;
-  const { sessionIdx, exerciseIdx } = state.editing;
-  const session = state.history[sessionIdx];
-  session.exercises.splice(exerciseIdx, 1);
-  if (session.exercises.length === 0) {
-    state.history.splice(sessionIdx, 1);
-  }
-  saveData();
-  closeEditModal();
-  showToast('Deleted ✓');
-  renderProgress();
+  showConfirm('Delete this exercise from the workout? If it was the only exercise in the session, the whole session will be removed.', () => {
+    const { sessionIdx, exerciseIdx } = state.editing;
+    const session = state.history[sessionIdx];
+    session.exercises.splice(exerciseIdx, 1);
+    if (session.exercises.length === 0) {
+      state.history.splice(sessionIdx, 1);
+    }
+    saveData();
+    closeEditModal();
+    showToast('Deleted ✓');
+    renderProgress();
+  }, 'Delete');
 }

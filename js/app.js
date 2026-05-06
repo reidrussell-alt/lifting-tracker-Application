@@ -1,7 +1,7 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
 import { showWelcomeScreen } from './welcome.js';
 import { renderProgress, updateMuscleGroupExercise, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar } from './progress.js';
-import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker } from './session.js';
+import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession } from './session.js';
 import { renderPlan } from './plan.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram } from './settings.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
@@ -59,10 +59,10 @@ window.deleteEditSession = deleteEditSession;
 window.navigateCalendar = navigateCalendar;
 
 window.exportData = exportData;
-window.importData = importData;
+window.importData = (event) => importData(event, () => renderPlan());
 window.openResetModal = openResetModal;
 window.closeResetModal = closeResetModal;
-window.confirmReset = confirmReset;
+window.confirmReset = () => { confirmReset(); switchTab('plan'); };
 
 window.renderSettings = renderSettings;
 window.editProfileName = editProfileName;
@@ -91,7 +91,11 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost' && locatio
 
 loadData();
 
-if (!state.profile) {
+if (state.currentSession) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('sessionPage').classList.add('active');
+  renderSession();
+} else if (!state.profile) {
   showOnboarding();
 } else {
   renderPlan();

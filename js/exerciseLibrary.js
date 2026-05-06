@@ -81,6 +81,19 @@ export const EXERCISE_LIBRARY = [
   { id: 'pallof_press', name: 'Pallof Press', muscleGroup: 'abs', loadType: 'weight' },
 ];
 
+export const MUSCLE_GROUP_ORDER = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'core'];
+
+export const MUSCLE_GROUP_META = {
+  chest:     { label: 'Chest',     color: '#ff6b35' },
+  back:      { label: 'Back',      color: '#3a9eff' },
+  shoulders: { label: 'Shoulders', color: '#b86bff' },
+  biceps:    { label: 'Biceps',    color: '#4ade80' },
+  triceps:   { label: 'Triceps',   color: '#f472b6' },
+  legs:      { label: 'Legs',      color: '#d4ff3a' },
+  core:      { label: 'Core',      color: '#fbbf24' },
+  other:     { label: 'Other',     color: '#888888' }
+};
+
 export function getExerciseById(id) {
   return EXERCISE_LIBRARY.find(ex => ex.id === id);
 }

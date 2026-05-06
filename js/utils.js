@@ -32,3 +32,20 @@ export function showToast(msg, variant = '') {
   toast.className = 'toast show ' + variant;
   setTimeout(() => toast.classList.remove('show'), 2200);
 }
+
+export function showConfirm(message, onConfirm, confirmLabel = 'Confirm') {
+  const modal = document.getElementById('confirmModal');
+  const textEl = document.getElementById('confirmModalText');
+  const okBtn = document.getElementById('confirmModalOk');
+  const cancelBtn = document.getElementById('confirmModalCancel');
+
+  textEl.textContent = message;
+  okBtn.textContent = confirmLabel;
+  modal.classList.add('active');
+
+  const close = () => modal.classList.remove('active');
+  const handleOk = () => { close(); onConfirm(); };
+
+  okBtn.addEventListener('click', handleOk, { once: true });
+  cancelBtn.addEventListener('click', close, { once: true });
+}

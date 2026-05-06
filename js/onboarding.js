@@ -1,5 +1,5 @@
 import { state, saveData, migrateV2ToV3 } from './data.js';
-import { PROGRAM_TEMPLATES } from './programTemplates.js';
+import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.js';
 import { showToast } from './utils.js';
 
 const onboardingData = {};
@@ -169,23 +169,7 @@ export function obFinish(mode, template) {
   };
 
   if (mode === 'structured' && template) {
-    state.programs = [{
-      id: `program_${Date.now()}`,
-      name: template.name,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      days: template.days.map(day => ({
-        id: day.id,
-        name: day.name,
-        exercises: day.exercises.map(ex => ({
-          id: ex.id,
-          name: ex.name,
-          sets: ex.sets,
-          loadType: ex.loadType,
-          muscleGroup: ex.muscleGroup
-        }))
-      }))
-    }];
+    state.programs = [buildProgramFromTemplate(template.name, template, true)];
   } else {
     state.programs = [];
   }

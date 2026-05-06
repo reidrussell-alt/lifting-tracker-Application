@@ -173,3 +173,23 @@ export const PROGRAM_TEMPLATES = [
 export function getTemplateById(id) {
   return PROGRAM_TEMPLATES.find(t => t.id === id);
 }
+
+export function buildProgramFromTemplate(name, template, isActive = false) {
+  return {
+    id: `program_${Date.now()}`,
+    name,
+    isActive,
+    createdAt: new Date().toISOString(),
+    days: template.days.map(day => ({
+      id: day.id,
+      name: day.name,
+      exercises: day.exercises.map(ex => ({
+        id: ex.id,
+        name: ex.name,
+        sets: ex.sets,
+        loadType: ex.loadType,
+        muscleGroup: ex.muscleGroup
+      }))
+    }))
+  };
+}

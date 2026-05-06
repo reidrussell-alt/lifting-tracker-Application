@@ -54,6 +54,17 @@ lift-tracker/
 
 ---
 
+## Naming conventions
+
+### `render*` vs `show*`
+
+- **`render*()`** — writes HTML to the DOM (full or partial re-render). Examples: `renderPlan()`, `renderProgress()`, `renderSession()`. These are the heavy-lifting functions that build UI from state.
+- **`show*()`** — displays something that already exists in the DOM by adding a class or setting visibility. Examples: `showToast()`, `showConfirm()`, `showOnboarding()`, `showWelcomeScreen()`. These never touch innerHTML.
+
+Follow this convention when adding new functions so callsites remain predictable.
+
+---
+
 ## Critical architecture pattern — window bindings
 
 Because `index.html` uses inline `onclick="..."` handlers on dynamically generated HTML, every handler function must be bound to `window` in `app.js`. This is the **only** place window bindings should live.
@@ -72,11 +83,11 @@ Cross-module calls (e.g. session.js calling switchTab) use `window.switchTab` at
 ## Data storage
 
 **Key:** `liftTrackerData` in localStorage
-**Schema version:** 3
+**Schema version:** 4 (v2→v3→v4 auto-migration on load)
 
 ```js
 {
-  version: 3,
+  version: 4,
   profile: {
     name: "Reid",
     createdAt: "2026-05-04T...",
@@ -122,7 +133,7 @@ Cross-module calls (e.g. session.js calling switchTab) use `window.switchTab` at
 }
 ```
 
-**Migration:** `loadData()` auto-migrates v2 → v3: creates default program from program.js, tags history with programId, creates profile `{ name: "Reid", trainingMode: "structured" }`. New users (no localStorage) see onboarding instead.
+**Migration:** `loadData()` auto-migrates v2→v3 (creates default program, tags history with programId, normalizes set notes) then v3→v4 (remaps `leg_ext_a`/`leg_ext_b` → `leg_extension`). New users (no localStorage) see onboarding instead.
 
 **Backup/restore:** Export downloads a JSON file; import replaces all history after confirmation.
 
@@ -187,15 +198,15 @@ Splash screen shown on every app open. Tap to dismiss (no auto-dismiss).
 - `navigateCalendar(dir)` — exported, bound to window, called by calendar arrow buttons
 
 ### `data.js`
-- `importData()` calls `window.renderPlan()` after import
-- `confirmReset()` calls `window.switchTab('plan')` after reset
+- `importData(event, onSuccess)` — calls optional `onSuccess` callback after a successful import; the caller (`app.js`) is responsible for any UI updates
+- `confirmReset()` — clears state and closes the reset modal; the caller (`app.js`) handles tab navigation
 
 ---
 
 ## Service worker
 
 - Cache name must be bumped (v1 → v2 → v3...) on **every deploy** that changes JS/CSS files
-- Currently: `lift-tracker-v5`
+- Currently: `lift-tracker-v6`
 - SW is **disabled on localhost** — the hostname check in `app.js` prevents re-registration during development
 - On iOS, updating the PWA requires deleting the home screen app and re-adding it from Safari
 

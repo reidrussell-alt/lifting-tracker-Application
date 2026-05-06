@@ -635,6 +635,43 @@ body { padding-bottom: 60px; }
   border-color: var(--accent);
 }
 
+/* Edit modal — openEditModal() in progress.js */
+.edit-section { margin-bottom: 16px; }
+.edit-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text-dim);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.edit-helper { font-size: 10px; color: var(--text-dimmer); margin-top: 4px; font-style: italic; }
+.edit-date-input {
+  width: 100%; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
+}
+.edit-set-row {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; margin-bottom: 8px;
+}
+.edit-set-inputs { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.edit-set-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--text-dim); font-weight: 700; width: 24px;
+}
+.edit-input {
+  flex: 1; background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; text-align: center;
+}
+.edit-sep { color: var(--text-dimmer); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.edit-note {
+  width: 100%; background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; color: var(--text);
+  font-family: 'Inter Tight', sans-serif; font-size: 11px; font-style: italic;
+  resize: vertical; min-height: 30px;
+}
+
 .rules-card, .data-section {
   background: var(--surface);
   border: 1px solid var(--border);

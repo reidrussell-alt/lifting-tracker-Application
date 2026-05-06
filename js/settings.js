@@ -1,6 +1,6 @@
 import { state, saveData, openResetModal } from './data.js';
-import { PROGRAM_TEMPLATES } from './programTemplates.js';
-import { showToast } from './utils.js';
+import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.js';
+import { showToast, showConfirm } from './utils.js';
 
 export function renderSettings() {
   const el = document.getElementById('settingsPage');
@@ -101,24 +101,26 @@ export function switchTrainingMode() {
   const current = state.profile?.trainingMode || 'structured';
   const next = current === 'structured' ? 'trackAsYouGo' : 'structured';
   const label = next === 'structured' ? 'Structured Plan' : 'Track As You Go';
-  if (!confirm(`Switch to "${label}" mode?`)) return;
-  state.profile.trainingMode = next;
-  saveData();
-  renderSettings();
-  window.renderPlan();
-  showToast(`Switched to ${label}`, 'success');
+  showConfirm(`Switch to "${label}" mode?`, () => {
+    state.profile.trainingMode = next;
+    saveData();
+    renderSettings();
+    window.renderPlan();
+    showToast(`Switched to ${label}`, 'success');
+  }, 'Switch');
 }
 
 export function setActiveProgram(programId) {
   const prog = state.programs.find(p => p.id === programId);
   if (!prog) return;
-  if (!confirm(`Switch active program to "${prog.name}"?\nYour workout history will remain intact.`)) return;
-  state.programs.forEach(p => { p.isActive = false; });
-  prog.isActive = true;
-  saveData();
-  refreshProgramsList();
-  window.renderPlan();
-  showToast(`Switched to "${prog.name}"`, 'success');
+  showConfirm(`Switch active program to "${prog.name}"? Your workout history will remain intact.`, () => {
+    state.programs.forEach(p => { p.isActive = false; });
+    prog.isActive = true;
+    saveData();
+    refreshProgramsList();
+    window.renderPlan();
+    showToast(`Switched to "${prog.name}"`, 'success');
+  }, 'Switch');
 }
 
 export function deleteProgram(programId) {
@@ -128,12 +130,13 @@ export function deleteProgram(programId) {
     showToast('Set another program as active first');
     return;
   }
-  if (!confirm(`Delete "${prog.name}"? This cannot be undone.`)) return;
-  state.programs = state.programs.filter(p => p.id !== programId);
-  saveData();
-  refreshProgramsList();
-  window.renderPlan();
-  showToast(`Deleted "${prog.name}"`);
+  showConfirm(`Delete "${prog.name}"? This cannot be undone.`, () => {
+    state.programs = state.programs.filter(p => p.id !== programId);
+    saveData();
+    refreshProgramsList();
+    window.renderPlan();
+    showToast(`Deleted "${prog.name}"`);
+  }, 'Delete');
 }
 
 export function duplicateProgram(programId) {
@@ -194,23 +197,7 @@ export function confirmCreateProgram() {
   if (!template) { showToast('Please select a template'); return; }
 
   const hasActive = state.programs.some(p => p.isActive);
-  const newProg = {
-    id: `program_${Date.now()}`,
-    name,
-    isActive: !hasActive,
-    createdAt: new Date().toISOString(),
-    days: template.days.map(day => ({
-      id: day.id,
-      name: day.name,
-      exercises: day.exercises.map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        sets: ex.sets,
-        loadType: ex.loadType,
-        muscleGroup: ex.muscleGroup
-      }))
-    }))
-  };
+  const newProg = buildProgramFromTemplate(name, template, !hasActive);
 
   state.programs.push(newProg);
   saveData();

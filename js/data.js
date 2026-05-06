@@ -1,4 +1,4 @@
-import { showToast } from './utils.js';
+import { showToast, showConfirm } from './utils.js';
 import { program, MUSCLE_GROUPS } from './program.js';
 
 export const state = {
@@ -11,7 +11,18 @@ export const state = {
 };
 
 const STORAGE_KEY = 'liftTrackerData';
-const SCHEMA_VERSION = 3;
+const SESSION_KEY = 'liftTrackerSession';
+const SCHEMA_VERSION = 4;
+
+export function saveCurrentSession() {
+  try {
+    if (state.currentSession) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(state.currentSession));
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  } catch (e) {}
+}
 
 export function saveData() {
   try {
@@ -23,6 +34,7 @@ export function saveData() {
     }));
   } catch (e) {
     console.warn('Save failed', e);
+    showToast('Could not save — storage may be full');
   }
 }
 
@@ -47,7 +59,7 @@ export function migrateV2ToV3(oldData) {
   };
 
   const profile = {
-    name: 'Reid',
+    name: oldData.profile?.name || '',
     createdAt: new Date().toISOString(),
     trainingMode: 'structured'
   };
@@ -55,7 +67,11 @@ export function migrateV2ToV3(oldData) {
   const updatedHistory = (oldData.history || []).map(session => ({
     ...session,
     programId: 'program_default',
-    programName: "Reid's 4-Day Push/Pull/Legs"
+    programName: "Reid's 4-Day Push/Pull/Legs",
+    exercises: (session.exercises || []).map(ex => ({
+      ...ex,
+      sets: (ex.sets || []).map(set => ({ note: '', ...set }))
+    }))
   }));
 
   return {
@@ -63,6 +79,27 @@ export function migrateV2ToV3(oldData) {
     profile,
     programs: [defaultProgram],
     history: updatedHistory
+  };
+}
+
+function migrateV3ToV4(data) {
+  const remap = { leg_ext_a: 'leg_extension', leg_ext_b: 'leg_extension' };
+  const remapId = id => remap[id] ?? id;
+
+  return {
+    ...data,
+    version: 4,
+    programs: (data.programs || []).map(prog => ({
+      ...prog,
+      days: (prog.days || []).map(day => ({
+        ...day,
+        exercises: (day.exercises || []).map(ex => ({ ...ex, id: remapId(ex.id) }))
+      }))
+    })),
+    history: (data.history || []).map(session => ({
+      ...session,
+      exercises: (session.exercises || []).map(ex => ({ ...ex, id: remapId(ex.id) }))
+    }))
   };
 }
 
@@ -74,28 +111,25 @@ export function loadData() {
 
     if (!data.version || data.version < 3) {
       data = migrateV2ToV3(data);
+    }
+    if (data.version < 4) {
+      data = migrateV3ToV4(data);
+    }
+    if (!data.version || data.version < SCHEMA_VERSION) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
     if (data.profile) state.profile = data.profile;
     if (data.programs) state.programs = data.programs;
-    if (data.history) {
-      state.history = data.history;
-      state.history.forEach(s => {
-        if (s.exercises) {
-          s.exercises.forEach(ex => {
-            if (ex.sets) {
-              ex.sets.forEach(set => {
-                if (set.note === undefined) set.note = '';
-              });
-            }
-          });
-        }
-      });
-    }
+    if (data.history) state.history = data.history;
   } catch (e) {
     console.warn('Load failed', e);
   }
+
+  try {
+    const sessRaw = localStorage.getItem(SESSION_KEY);
+    if (sessRaw) state.currentSession = JSON.parse(sessRaw);
+  } catch (e) {}
 }
 
 export function exportData() {
@@ -122,7 +156,7 @@ export function exportData() {
   showToast(`Exported ${state.history.length} sessions ✓`, 'success');
 }
 
-export function importData(event) {
+export function importData(event, onSuccess) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -141,14 +175,14 @@ export function importData(event) {
       const confirmMsg = currentCount === 0
         ? `Import ${incomingCount} sessions?`
         : `You have ${currentCount} sessions. Replace with ${incomingCount} imported sessions?`;
-      if (confirm(confirmMsg)) {
+      showConfirm(confirmMsg, () => {
         state.history = data.history;
         if (data.profile) state.profile = data.profile;
         if (data.programs) state.programs = data.programs;
         saveData();
         showToast(`Imported ${incomingCount} sessions ✓`, 'success');
-        window.renderPlan();
-      }
+        onSuccess?.();
+      }, 'Import');
     } catch (err) {
       showToast('Could not read backup file');
     }
@@ -171,5 +205,4 @@ export function confirmReset() {
   saveData();
   closeResetModal();
   showToast('All data cleared');
-  window.switchTab('plan');
 }
