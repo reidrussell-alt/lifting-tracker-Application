@@ -105,6 +105,23 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Rest Timer Pill -->
+<div id="restTimerPill" class="rest-timer-pill" onclick="window.toggleTimerExpanded()">
+  <svg class="timer-ring-svg" viewBox="0 0 72 72" width="72" height="72">
+    <circle class="timer-track-circle" cx="36" cy="36" r="28" fill="none" stroke-width="3"/>
+    <circle id="timerProgressCircle" class="timer-progress-circle" cx="36" cy="36" r="28" fill="none"
+            stroke-width="3" stroke-linecap="round" transform="rotate(-90 36 36)"/>
+  </svg>
+  <div class="timer-main">
+    <span id="timerDisplay" class="timer-display-text">2:00</span>
+  </div>
+  <div id="timerControlsRow" class="timer-controls-row" onclick="event.stopPropagation()">
+    <button id="timerPauseBtn" class="timer-ctrl" onclick="window.pauseTimer()">⏸</button>
+    <button class="timer-ctrl" onclick="window.skipTimer()" title="Skip to ready">⏭</button>
+    <button class="timer-ctrl" onclick="window.resetTimer()" title="Reset">↺</button>
+  </div>
+</div>
+
 <div id="welcomeScreen" aria-hidden="true"></div>
 
 <!-- Onboarding overlay — shown for brand new users -->

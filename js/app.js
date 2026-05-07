@@ -1,10 +1,11 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
 import { showWelcomeScreen } from './welcome.js';
-import { renderProgress, updateMuscleGroupExercise, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, deleteSession } from './progress.js';
+import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, deleteSession } from './progress.js';
 import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
-import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram } from './settings.js';
+import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert } from './settings.js';
+import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility } from './restTimer.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
 import { state } from './data.js';
 
@@ -17,6 +18,7 @@ function switchTab(tab) {
     document.getElementById('sessionPage').classList.add('active');
     hideSessionBanner();
     renderSession();
+    updatePillVisibility();
     return;
   }
 
@@ -36,6 +38,7 @@ function switchTab(tab) {
 
   // Show or hide the active workout banner on all non-session tabs
   updateSessionBanner();
+  updatePillVisibility();
 }
 
 // All window bindings — the only place inline onclick handlers can reach these functions
@@ -63,6 +66,7 @@ window.filterExercisePicker = filterExercisePicker;
 
 window.renderProgress = renderProgress;
 window.updateMuscleGroupExercise = updateMuscleGroupExercise;
+window.setChartRange = setChartRange;
 window.toggleHistoryBlock = toggleHistoryBlock;
 window.openEditModal = openEditModal;
 window.closeEditModal = closeEditModal;
@@ -93,6 +97,14 @@ window.showCreateProgram = showCreateProgram;
 window.closeCreateProgram = closeCreateProgram;
 window.confirmCreateProgram = confirmCreateProgram;
 
+window.toggleRestTimer = toggleRestTimer;
+window.onRestDurationChange = onRestDurationChange;
+window.toggleRestAlert = toggleRestAlert;
+window.pauseTimer = pauseTimer;
+window.skipTimer = skipTimer;
+window.resetTimer = resetTimer;
+window.toggleTimerExpanded = toggleTimerExpanded;
+
 window.showOnboarding = showOnboarding;
 window.hideOnboarding = hideOnboarding;
 window.obGoTo = obGoTo;
@@ -114,6 +126,7 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost' && locatio
 }
 
 loadData();
+initRestTimer();
 
 if (state.currentSession) {
   // Go directly to session page — banner not shown while on session screen

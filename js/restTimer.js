@@ -1,0 +1,207 @@
+const TIMER_SETTINGS_KEY = 'liftTimerSettings';
+
+const settings = {
+  enabled: false,
+  duration: 120,
+  alertEnabled: true
+};
+
+const timerState = {
+  isActive: false,
+  remainingTime: 0,
+  duration: 120,
+  status: 'RED',
+  isPaused: false,
+  isExpanded: false
+};
+
+let _interval = null;
+const CIRC = 2 * Math.PI * 28; // r=28 → ~175.93
+
+export function loadTimerSettings() {
+  try {
+    const raw = localStorage.getItem(TIMER_SETTINGS_KEY);
+    if (raw) Object.assign(settings, JSON.parse(raw));
+  } catch (e) {}
+}
+
+function _saveTimerSettings() {
+  try {
+    localStorage.setItem(TIMER_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {}
+}
+
+export function getTimerSettings() {
+  return { ...settings };
+}
+
+export function setTimerEnabled(val) {
+  settings.enabled = !!val;
+  _saveTimerSettings();
+  if (!val) stopRestTimer();
+  else updatePillVisibility();
+}
+
+export function setTimerDuration(seconds) {
+  const snapped = Math.round(seconds / 15) * 15;
+  settings.duration = Math.max(30, Math.min(600, snapped));
+  _saveTimerSettings();
+}
+
+export function setTimerAlertEnabled(val) {
+  settings.alertEnabled = !!val;
+  _saveTimerSettings();
+}
+
+function _getStatus(remaining, total) {
+  if (remaining > total * 0.34) return 'RED';
+  if (remaining > total * 0.10) return 'YELLOW';
+  return 'GREEN';
+}
+
+export function startRestTimer(exIdx, setIdx) {
+  if (!settings.enabled) return;
+  clearInterval(_interval);
+  _interval = null;
+  timerState.isActive = true;
+  timerState.duration = settings.duration;
+  timerState.remainingTime = settings.duration;
+  timerState.status = 'RED';
+  timerState.isPaused = false;
+  timerState.isExpanded = false;
+
+  const pill = document.getElementById('restTimerPill');
+  if (pill) pill.classList.remove('expanded');
+
+  _updateDisplay();
+  updatePillVisibility();
+  _interval = setInterval(_tick, 1000);
+}
+
+export function stopRestTimer() {
+  clearInterval(_interval);
+  _interval = null;
+  timerState.isActive = false;
+  timerState.isExpanded = false;
+  updatePillVisibility();
+}
+
+export function pauseTimer() {
+  if (!timerState.isActive) return;
+  timerState.isPaused = !timerState.isPaused;
+  if (timerState.isPaused) {
+    clearInterval(_interval);
+    _interval = null;
+  } else if (timerState.remainingTime > 0) {
+    clearInterval(_interval);
+    _interval = setInterval(_tick, 1000);
+  }
+  _updateDisplay();
+}
+
+export function skipTimer() {
+  if (!timerState.isActive) return;
+  clearInterval(_interval);
+  _interval = null;
+  timerState.remainingTime = 0;
+  timerState.status = 'GREEN';
+  timerState.isPaused = false;
+  _updateDisplay();
+}
+
+export function resetTimer() {
+  if (!timerState.isActive) return;
+  clearInterval(_interval);
+  _interval = null;
+  timerState.remainingTime = timerState.duration;
+  timerState.status = _getStatus(timerState.remainingTime, timerState.duration);
+  timerState.isPaused = false;
+  _updateDisplay();
+  _interval = setInterval(_tick, 1000);
+}
+
+export function toggleTimerExpanded() {
+  if (!timerState.isActive) return;
+  timerState.isExpanded = !timerState.isExpanded;
+  const pill = document.getElementById('restTimerPill');
+  if (pill) pill.classList.toggle('expanded', timerState.isExpanded);
+  const controls = document.getElementById('timerControlsRow');
+  if (controls) controls.classList.toggle('visible', timerState.isExpanded);
+}
+
+function _tick() {
+  if (timerState.isPaused) return;
+  if (timerState.remainingTime > 0) {
+    timerState.remainingTime--;
+  }
+  timerState.status = _getStatus(timerState.remainingTime, timerState.duration);
+  if (timerState.remainingTime === 0) {
+    clearInterval(_interval);
+    _interval = null;
+    if (settings.alertEnabled && 'vibrate' in navigator) {
+      navigator.vibrate([80, 40, 80]);
+    }
+  }
+  _updateDisplay();
+}
+
+function _formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function _updateDisplay() {
+  const display = document.getElementById('timerDisplay');
+  const progressCircle = document.getElementById('timerProgressCircle');
+  const pauseBtn = document.getElementById('timerPauseBtn');
+  const pill = document.getElementById('restTimerPill');
+
+  if (!pill || !display) return;
+
+  const { remainingTime, duration, status, isPaused } = timerState;
+
+  display.textContent = isPaused ? '⏸' : (remainingTime === 0 ? 'READY' : _formatTime(remainingTime));
+
+  if (progressCircle) {
+    const pct = duration > 0 ? remainingTime / duration : 0;
+    progressCircle.setAttribute('stroke-dasharray', `${pct * CIRC} ${CIRC}`);
+  }
+
+  pill.dataset.status = status;
+
+  if (pauseBtn) {
+    if (status === 'GREEN') {
+      pauseBtn.style.display = 'none';
+    } else {
+      pauseBtn.style.display = '';
+      pauseBtn.textContent = isPaused ? '▶' : '⏸';
+      pauseBtn.title = isPaused ? 'Resume' : 'Pause';
+    }
+  }
+}
+
+export function updatePillVisibility() {
+  const pill = document.getElementById('restTimerPill');
+  if (!pill) return;
+  const sessionActive = document.getElementById('sessionPage')?.classList.contains('active');
+  const shouldShow = timerState.isActive && settings.enabled && sessionActive;
+  pill.classList.toggle('visible', shouldShow);
+  if (!shouldShow) {
+    pill.classList.remove('expanded');
+    timerState.isExpanded = false;
+    const controls = document.getElementById('timerControlsRow');
+    if (controls) controls.classList.remove('visible');
+  }
+}
+
+export function initRestTimer() {
+  loadTimerSettings();
+  updatePillVisibility();
+}
+
+export function formatRestDuration(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s === 0 ? `${m}:00` : `${m}:${s.toString().padStart(2, '0')}`;
+}

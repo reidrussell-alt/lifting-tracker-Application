@@ -1,6 +1,7 @@
 import { state, saveData, saveCurrentSession } from './data.js';
 import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
 import { todayDateString, formatDate, showToast, showConfirm } from './utils.js';
+import { startRestTimer, stopRestTimer } from './restTimer.js';
 
 let _reorderMode = false;
 
@@ -157,6 +158,7 @@ function _doStartTrackAsYouGo() {
 
 export function leaveSession() {
   _reorderMode = false;
+  stopRestTimer();
   window.switchTab('plan');
 }
 
@@ -458,6 +460,7 @@ export function updateSet(exIdx, setIdx, field, value) {
       const checkBtn = row.querySelectorAll('.icon-btn')[1];
       if (checkBtn) checkBtn.classList.add('logged');
     }
+    startRestTimer(exIdx, setIdx);
   }
   saveCurrentSession();
 }
@@ -483,6 +486,8 @@ export function toggleSetLogged(exIdx, setIdx) {
   const allLogged = ex.sets.every(s => s.logged);
   const block = row.closest('.exercise-block');
   if (block) block.classList.toggle('complete', allLogged && ex.sets.length >= targetSets);
+
+  if (set.logged) startRestTimer(exIdx, setIdx);
   saveCurrentSession();
 }
 
@@ -587,6 +592,7 @@ export function addExerciseToSession(exerciseId) {
 
 export function abandonSession() {
   showConfirm('Discard this session?', () => {
+    stopRestTimer();
     state.currentSession = null;
     saveCurrentSession();
     window.switchTab('plan');
@@ -613,6 +619,7 @@ export function finishSession() {
 
 export function confirmFinishSession() {
   closeModal();
+  stopRestTimer();
   const sess = state.currentSession;
   const dateStr = sess.date || todayDateString();
   const record = {

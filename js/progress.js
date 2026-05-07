@@ -6,6 +6,36 @@ import { drawSingleLineChart } from './charts.js';
 
 const FALLBACK_COLORS = ['#ff6b35','#d4ff3a','#3a9eff','#b86bff','#4ade80','#f472b6','#fb923c','#60a5fa'];
 
+const CHART_RANGES_KEY = 'liftTrackerChartRanges';
+const RANGE_OPTIONS = [10, 20, 30, 'all'];
+
+// Populated on every renderProgress call — used by setChartRange without a full re-render
+let _exerciseDataCache = {};
+let _chartRanges = {};
+
+function _loadChartRanges() {
+  try {
+    const raw = localStorage.getItem(CHART_RANGES_KEY);
+    if (raw) _chartRanges = JSON.parse(raw);
+  } catch (e) {}
+}
+
+function _saveChartRanges() {
+  try {
+    localStorage.setItem(CHART_RANGES_KEY, JSON.stringify(_chartRanges));
+  } catch (e) {}
+}
+
+function _getRange(exId) {
+  return _chartRanges[exId] ?? 10;
+}
+
+function _subtitleText(loadType, visibleCount, totalCount) {
+  const metric = loadType === 'bw' ? 'Rep growth' : 'Weight growth';
+  if (visibleCount >= totalCount) return `${metric} · all ${totalCount} sessions`;
+  return `${metric} · last ${visibleCount} of ${totalCount} sessions`;
+}
+
 function dayColor(dayId) {
   const known = { upperA:'#ff6b35', lowerA:'#d4ff3a', upperB:'#3a9eff', lowerB:'#b86bff' };
   if (known[dayId]) return known[dayId];
@@ -101,6 +131,7 @@ function renderCalendar() {
 }
 
 export function renderProgress() {
+  _loadChartRanges();
   const el = document.getElementById('progressPage');
 
   if (state.history.length === 0) {
@@ -176,6 +207,9 @@ export function renderProgress() {
 
   html += renderCalendar();
 
+  // Cache exercise data for range-change updates without full re-render
+  _exerciseDataCache = exerciseStats;
+
   // Group exercises by muscle group
   const muscleGroupStats = {};
   MUSCLE_GROUP_ORDER.forEach(mg => muscleGroupStats[mg] = {});
@@ -211,17 +245,30 @@ export function renderProgress() {
       .map(([id, data]) => `<option value="${id}" ${id === selectedId ? 'selected' : ''}>${data.name} (${data.sessions.length})</option>`)
       .join('');
 
+    const range = _getRange(selectedId);
+    const visibleCount = range === 'all' ? selectedData.sessions.length : Math.min(range, selectedData.sessions.length);
+    const rangeBtns = RANGE_OPTIONS.map(r => `
+      <button class="range-btn${range === r ? ' active' : ''}"
+              onclick="window.setChartRange('${mg}', '${selectedId}', ${r === 'all' ? "'all'" : r})"
+              aria-label="Show last ${r === 'all' ? 'all' : r} workouts">
+        ${r === 'all' ? 'All' : r}
+      </button>
+    `).join('');
+
     html += `
       <div class="chart-card" style="border-left: 3px solid ${meta.color};">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
           <div class="chart-title" style="color: ${meta.color};">${meta.label.toUpperCase()}</div>
           <div class="trend-pill ${trend.cls}">${trend.label}</div>
         </div>
-        <div class="chart-subtitle">Weight growth · ${selectedData.sessions.length} sessions logged</div>
-        <select class="chart-select" onchange="updateMuscleGroupExercise('${mg}', this.value)">
-          ${opts}
-        </select>
-        <div class="chart-canvas-wrap"><canvas id="chart_${mg}"></canvas></div>
+        <div class="chart-subtitle" id="chartSubtitle_${mg}">${_subtitleText(selectedData.loadType, visibleCount, selectedData.sessions.length)}</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <select class="chart-select" style="flex:1;margin-bottom:0;" onchange="updateMuscleGroupExercise('${mg}', this.value)">
+            ${opts}
+          </select>
+          <div class="range-selector" id="rangeSelector_${mg}">${rangeBtns}</div>
+        </div>
+        <div class="chart-canvas-wrap" id="chartWrap_${mg}"><canvas id="chart_${mg}"></canvas></div>
         <div class="chart-legend">
           <span><span class="legend-dot" style="background: ${meta.color};"></span>${selectedData.loadType === 'bw' ? 'Max Reps' : 'Top Weight (lb)'}</span>
         </div>
@@ -293,7 +340,7 @@ export function renderProgress() {
       const exercisesInGroup = muscleGroupStats[mg] || {};
       const selectedId = state.chartExerciseByGroup[mg];
       if (selectedId && exercisesInGroup[selectedId]) {
-        renderMuscleGroupChart(mg, exercisesInGroup[selectedId]);
+        renderMuscleGroupChart(mg, exercisesInGroup[selectedId], _getRange(selectedId));
       }
     });
     renderVolumeChart();
@@ -306,13 +353,47 @@ export function updateMuscleGroupExercise(mg, id) {
   renderProgress();
 }
 
-export function renderMuscleGroupChart(mg, exerciseData) {
+export function setChartRange(mg, exId, range) {
+  _chartRanges[exId] = range;
+  _saveChartRanges();
+
+  const exerciseData = _exerciseDataCache[exId];
+  if (!exerciseData) return;
+
+  // Update range button active states
+  const selector = document.getElementById('rangeSelector_' + mg);
+  if (selector) {
+    selector.querySelectorAll('.range-btn').forEach(btn => {
+      const btnRange = btn.textContent.trim() === 'All' ? 'all' : parseInt(btn.textContent.trim(), 10);
+      btn.classList.toggle('active', btnRange === range);
+    });
+  }
+
+  // Update subtitle
+  const visibleCount = range === 'all' ? exerciseData.sessions.length : Math.min(range, exerciseData.sessions.length);
+  const subtitle = document.getElementById('chartSubtitle_' + mg);
+  if (subtitle) subtitle.textContent = _subtitleText(exerciseData.loadType, visibleCount, exerciseData.sessions.length);
+
+  // Fade canvas out → redraw → fade in
+  const wrap = document.getElementById('chartWrap_' + mg);
+  if (wrap) {
+    wrap.style.opacity = '0';
+    setTimeout(() => {
+      renderMuscleGroupChart(mg, exerciseData, range);
+      wrap.style.opacity = '1';
+    }, 150);
+  } else {
+    renderMuscleGroupChart(mg, exerciseData, range);
+  }
+}
+
+export function renderMuscleGroupChart(mg, exerciseData, range) {
   if (!exerciseData) return;
   const canvas = document.getElementById('chart_' + mg);
   if (!canvas) return;
   const color = MUSCLE_GROUP_META[mg].color;
 
-  const dataPoints = exerciseData.sessions.map(s => {
+  const allPoints = exerciseData.sessions.map(s => {
     const validSets = s.sets.filter(set => set.reps !== '');
     const topWeight = exerciseData.loadType === 'bw'
       ? Math.max(...validSets.map(set => parseInt(set.reps) || 0), 0)
@@ -320,6 +401,7 @@ export function renderMuscleGroupChart(mg, exerciseData) {
     return { date: s.date, topWeight };
   });
 
+  const dataPoints = (range === 'all' || range == null) ? allPoints : allPoints.slice(-range);
   drawSingleLineChart(canvas, dataPoints, 'topWeight', color);
 }
 

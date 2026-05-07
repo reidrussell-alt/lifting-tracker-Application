@@ -1,6 +1,7 @@
 import { state, saveData, openResetModal } from './data.js';
 import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.js';
 import { showToast, showConfirm } from './utils.js';
+import { getTimerSettings, setTimerEnabled, setTimerDuration, setTimerAlertEnabled, formatRestDuration } from './restTimer.js';
 
 export function renderSettings() {
   const el = document.getElementById('settingsPage');
@@ -38,6 +39,40 @@ export function renderSettings() {
       </div>
     `;
   }
+
+  const timer = getTimerSettings();
+  html += `
+    <div class="settings-section">
+      <div class="settings-section-title">Workout Settings</div>
+      <div class="settings-row">
+        <span class="settings-row-label">Rest Timer</span>
+        <label class="settings-toggle">
+          <input type="checkbox" ${timer.enabled ? 'checked' : ''}
+                 onchange="window.toggleRestTimer(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="restTimerOptions" style="display:${timer.enabled ? '' : 'none'}">
+        <div class="settings-row">
+          <span class="settings-row-label">Rest Duration</span>
+          <div class="timer-duration-wrap">
+            <input type="range" class="timer-duration-slider"
+                   min="30" max="600" step="15" value="${timer.duration}"
+                   oninput="window.onRestDurationChange(this.value)">
+            <span class="timer-duration-display" id="restDurationDisplay">${formatRestDuration(timer.duration)}</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-row-label">Vibrate when ready</span>
+          <label class="settings-toggle">
+            <input type="checkbox" ${timer.alertEnabled ? 'checked' : ''}
+                   onchange="window.toggleRestAlert(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  `;
 
   html += `
     <div class="settings-section">
@@ -210,4 +245,21 @@ export function confirmCreateProgram() {
 function refreshProgramsList() {
   const el = document.getElementById('programsList');
   if (el) el.innerHTML = renderProgramsListHtml();
+}
+
+export function toggleRestTimer(enabled) {
+  setTimerEnabled(enabled);
+  const opts = document.getElementById('restTimerOptions');
+  if (opts) opts.style.display = enabled ? '' : 'none';
+}
+
+export function onRestDurationChange(val) {
+  const seconds = parseInt(val, 10);
+  setTimerDuration(seconds);
+  const display = document.getElementById('restDurationDisplay');
+  if (display) display.textContent = formatRestDuration(seconds);
+}
+
+export function toggleRestAlert(enabled) {
+  setTimerAlertEnabled(enabled);
 }
