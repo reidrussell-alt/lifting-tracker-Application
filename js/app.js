@@ -1,7 +1,8 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
 import { showWelcomeScreen } from './welcome.js';
 import { renderProgress, updateMuscleGroupExercise, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar } from './progress.js';
-import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession } from './session.js';
+import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession } from './session.js';
+import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram } from './settings.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
@@ -10,6 +11,14 @@ import { state } from './data.js';
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  if (tab === 'session') {
+    // No tab button highlights for the session page
+    document.getElementById('sessionPage').classList.add('active');
+    hideSessionBanner();
+    renderSession();
+    return;
+  }
 
   if (tab === 'plan') {
     document.querySelectorAll('.tab')[0].classList.add('active');
@@ -24,6 +33,9 @@ function switchTab(tab) {
     document.getElementById('settingsPage').classList.add('active');
     renderSettings();
   }
+
+  // Show or hide the active workout banner on all non-session tabs
+  updateSessionBanner();
 }
 
 // All window bindings — the only place inline onclick handlers can reach these functions
@@ -84,6 +96,9 @@ window.obProcessImport = obProcessImport;
 
 window.showWelcomeScreen = showWelcomeScreen;
 
+window.resumeSession = resumeSession;
+window.leaveSession = leaveSession;
+
 // Register service worker (skipped on localhost)
 if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   navigator.serviceWorker.register('./service-worker.js').catch(() => {});
@@ -92,6 +107,7 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost' && locatio
 loadData();
 
 if (state.currentSession) {
+  // Go directly to session page — banner not shown while on session screen
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('sessionPage').classList.add('active');
   renderSession();

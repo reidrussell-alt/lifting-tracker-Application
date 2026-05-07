@@ -24,12 +24,16 @@ export function renderPlan() {
 
 function renderTrackAsYouGoPlan(el) {
   const count = state.history.length;
+  const hasActiveSession = !!state.currentSession;
+  const btnLabel = hasActiveSession ? 'Resume' : 'Start';
+  const btnClass = hasActiveSession ? 'start-btn resume' : 'start-btn';
+  const btnAction = hasActiveSession ? 'resumeSession()' : 'startTrackAsYouGoWorkout()';
   el.innerHTML = `
     <div class="plan-mode-header">
       <div class="plan-mode-title">Track As You Go</div>
       <div class="plan-mode-sub">${count} session${count !== 1 ? 's' : ''} logged</div>
     </div>
-    <div class="day-card" style="border: 1px dashed var(--accent);">
+    <div class="day-card${hasActiveSession ? ' is-active-session' : ''}" style="border: 1px dashed var(--accent);">
       <div class="day-header">
         <div class="day-left">
           <div class="day-badge" style="border-color:var(--accent);color:var(--accent);">+</div>
@@ -38,7 +42,7 @@ function renderTrackAsYouGoPlan(el) {
             <div class="day-desc">Add exercises as you go</div>
           </div>
         </div>
-        <button class="start-btn" onclick="startTrackAsYouGoWorkout()">Start</button>
+        <button class="${btnClass}" onclick="${btnAction}">${btnLabel}</button>
       </div>
     </div>
     ${count > 0 && count % 10 === 0 ? `
@@ -71,11 +75,17 @@ function renderStructuredPlan(el, prog) {
     </div>
   `;
 
+  const activeDayId = state.currentSession?.dayId ?? null;
+
   prog.days.forEach((d, idx) => {
     const totalSets = d.exercises.reduce((s, e) => s + e.sets, 0);
     const type = d.type || '';
+    const isActive = activeDayId === d.id;
+    const cardClass = `day-card${isActive ? ' is-active-session' : ''}`;
+    const btnLabel = isActive ? 'Resume' : 'Start';
+    const btnClass = isActive ? 'start-btn resume' : 'start-btn';
     html += `
-      <div class="day-card"${type ? ` data-type="${type}"` : ''}>
+      <div class="${cardClass}"${type ? ` data-type="${type}"` : ''}>
         <div class="day-header">
           <div class="day-left">
             <div class="day-badge">${idx + 1}</div>
@@ -84,7 +94,7 @@ function renderStructuredPlan(el, prog) {
               <div class="day-desc">${d.exercises.length} exercises · ${totalSets} sets</div>
             </div>
           </div>
-          <button class="start-btn" onclick="startSession('${d.id}')">Start</button>
+          <button class="${btnClass}" onclick="startSession('${d.id}')">${btnLabel}</button>
         </div>
       </div>
     `;

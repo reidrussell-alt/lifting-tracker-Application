@@ -71,6 +71,26 @@ function getLastBw() {
 }
 
 export function startSession(dayId) {
+  // Resume same session without dialog
+  if (state.currentSession && state.currentSession.dayId === dayId) {
+    window.switchTab('session');
+    return;
+  }
+
+  // Conflict: different session already active — confirm before discarding
+  if (state.currentSession) {
+    showConfirm(
+      `Abandon "${state.currentSession.dayTitle}" and start a new workout?`,
+      () => _doStartSession(dayId),
+      'Start New'
+    );
+    return;
+  }
+
+  _doStartSession(dayId);
+}
+
+function _doStartSession(dayId) {
   const activeProgram = state.programs.find(p => p.isActive);
   if (!activeProgram) { window.switchTab('plan'); return; }
 
@@ -99,12 +119,22 @@ export function startSession(dayId) {
   };
 
   saveCurrentSession();
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('sessionPage').classList.add('active');
-  renderSession();
+  window.switchTab('session');
 }
 
 export function startTrackAsYouGoWorkout() {
+  if (state.currentSession) {
+    showConfirm(
+      `Abandon "${state.currentSession.dayTitle}" and start a new workout?`,
+      _doStartTrackAsYouGo,
+      'Start New'
+    );
+    return;
+  }
+  _doStartTrackAsYouGo();
+}
+
+function _doStartTrackAsYouGo() {
   const today = new Date();
   state.currentSession = {
     programId: null,
@@ -120,9 +150,11 @@ export function startTrackAsYouGoWorkout() {
   };
 
   saveCurrentSession();
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('sessionPage').classList.add('active');
-  renderSession();
+  window.switchTab('session');
+}
+
+export function leaveSession() {
+  window.switchTab('plan');
 }
 
 export function renderSession() {
@@ -137,7 +169,7 @@ export function renderSession() {
           <div class="session-day-name">${sess.dayTitle}</div>
           <div class="session-meta-row">${metaTag} · ${sess.exercises.length} EXERCISE${sess.exercises.length !== 1 ? 'S' : ''}</div>
         </div>
-        <button class="back-btn" onclick="abandonSession()">←</button>
+        <button class="back-btn" onclick="leaveSession()">←</button>
       </div>
       <div class="bw-input-wrap">
         <span class="bw-label">Workout Date</span>
@@ -262,7 +294,10 @@ export function renderSession() {
     html += `<button class="add-exercise-fab" onclick="showExercisePicker()">+ Add Exercise</button>`;
   }
 
-  html += `<button class="finish-btn" onclick="finishSession()">Finish & Save Session</button>`;
+  html += `
+    <button class="finish-btn" onclick="finishSession()">Finish & Save Session</button>
+    <button class="abandon-link" onclick="abandonSession()">Discard Session</button>
+  `;
   el.innerHTML = html;
 }
 

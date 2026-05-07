@@ -1331,3 +1331,61 @@ body { padding-bottom: 60px; }
   cursor: pointer; margin-top: 8px; margin-bottom: 8px;
 }
 .add-exercise-fab:active { background: var(--surface-2); }
+
+/* ===== ACTIVE WORKOUT BANNER ===== */
+.active-workout-banner {
+  display: none; /* shown via JS when session is active */
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border-bottom: 1px solid rgba(212, 255, 58, 0.25);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.active-workout-banner:active { background: var(--surface-2); }
+
+.awb-left { flex: 1; min-width: 0; }
+.awb-title {
+  font-size: 13px; font-weight: 700; letter-spacing: -0.2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.awb-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase;
+  margin-top: 2px;
+}
+.awb-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.awb-elapsed {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--accent); min-width: 44px; text-align: right;
+}
+.awb-resume-btn {
+  background: var(--accent); color: var(--bg); border: none;
+  border-radius: 8px; padding: 7px 13px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  pointer-events: none; /* tap handled by parent */
+}
+
+/* Plan tab — active session card state */
+.day-card.is-active-session { border-color: rgba(212, 255, 58, 0.3); }
+.day-card.is-active-session .day-desc::before {
+  content: "● IN PROGRESS  ";
+  color: var(--accent); font-weight: 700;
+}
+.start-btn.resume {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+/* Session page — abandon link */
+.abandon-link {
+  display: block; text-align: center; width: 100%;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--text-dimmer); letter-spacing: 0.5px;
+  padding: 12px; cursor: pointer; background: none; border: none;
+  text-decoration: underline; margin-top: 4px;
+}
+.abandon-link:active { color: var(--push); }
