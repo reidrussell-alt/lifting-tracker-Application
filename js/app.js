@@ -7,6 +7,8 @@ import { renderPlan } from './plan.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert } from './settings.js';
 import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility } from './restTimer.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
+import { openExerciseSelector, closeExerciseSelector, exSelFilterMuscle, exSelSearch, exSelPickExercise, exSelShowCreate, exSelCancelCreate, exSelConfirmCreate } from './exerciseSelector.js';
+import { showProgramBuilder, closeProgramBuilder, pbUpdateName, pbSelectDayCount, pbToggleDay, pbSetDayName, pbAddExercise, pbEditExercise, pbRemoveExercise, pbSetRepType, pbSaveProgram, pbConfirmSetsReps, pbCancelSetsReps, pbIncrSets, pbDecrSets, pbIncrRepMin, pbDecrRepMin, pbIncrRepMax, pbDecrRepMax, pbIncrFixed, pbDecrFixed } from './programBuilder.js';
 import { state } from './data.js';
 
 function switchTab(tab) {
@@ -99,6 +101,37 @@ window.editProgram = editProgram;
 window.showCreateProgram = showCreateProgram;
 window.closeCreateProgram = closeCreateProgram;
 window.confirmCreateProgram = confirmCreateProgram;
+
+window.openExerciseSelector = openExerciseSelector;
+window.closeExerciseSelector = closeExerciseSelector;
+window.exSelFilterMuscle = exSelFilterMuscle;
+window.exSelSearch = exSelSearch;
+window.exSelPickExercise = exSelPickExercise;
+window.exSelShowCreate = exSelShowCreate;
+window.exSelCancelCreate = exSelCancelCreate;
+window.exSelConfirmCreate = exSelConfirmCreate;
+
+window.showProgramBuilder = showProgramBuilder;
+window.closeProgramBuilder = closeProgramBuilder;
+window.pbUpdateName = pbUpdateName;
+window.pbSelectDayCount = pbSelectDayCount;
+window.pbToggleDay = pbToggleDay;
+window.pbSetDayName = pbSetDayName;
+window.pbAddExercise = pbAddExercise;
+window.pbEditExercise = pbEditExercise;
+window.pbRemoveExercise = pbRemoveExercise;
+window.pbSetRepType = pbSetRepType;
+window.pbSaveProgram = pbSaveProgram;
+window.pbConfirmSetsReps = pbConfirmSetsReps;
+window.pbCancelSetsReps = pbCancelSetsReps;
+window.pbIncrSets = pbIncrSets;
+window.pbDecrSets = pbDecrSets;
+window.pbIncrRepMin = pbIncrRepMin;
+window.pbDecrRepMin = pbDecrRepMin;
+window.pbIncrRepMax = pbIncrRepMax;
+window.pbDecrRepMax = pbDecrRepMax;
+window.pbIncrFixed = pbIncrFixed;
+window.pbDecrFixed = pbDecrFixed;
 
 window.toggleRestTimer = toggleRestTimer;
 window.onRestDurationChange = onRestDurationChange;

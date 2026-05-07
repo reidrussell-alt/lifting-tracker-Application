@@ -7,7 +7,8 @@ export const state = {
   history: [],
   currentSession: null,
   chartExerciseByGroup: {},
-  editing: null
+  editing: null,
+  customExercises: []
 };
 
 const STORAGE_KEY = 'liftTrackerData';
@@ -30,7 +31,8 @@ export function saveData() {
       version: SCHEMA_VERSION,
       profile: state.profile,
       programs: state.programs,
-      history: state.history
+      history: state.history,
+      customExercises: state.customExercises
     }));
   } catch (e) {
     console.warn('Save failed', e);
@@ -122,6 +124,7 @@ export function loadData() {
     if (data.profile) state.profile = data.profile;
     if (data.programs) state.programs = data.programs;
     if (data.history) state.history = data.history;
+    if (data.customExercises) state.customExercises = data.customExercises;
   } catch (e) {
     console.warn('Load failed', e);
   }

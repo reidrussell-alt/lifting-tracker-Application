@@ -115,9 +115,7 @@ function renderProgramCard(prog, isActive) {
     : '';
 
   let actions = '';
-  if (isCustom) {
-    actions += `<button class="prog-btn" onclick="editProgram('${prog.id}')">Edit</button>`;
-  }
+  actions += `<button class="prog-btn" onclick="showProgramBuilder('${prog.id}')">Edit</button>`;
   actions += `<button class="prog-btn" onclick="duplicateProgram('${prog.id}')">Duplicate</button>`;
   if (!isActive && isCustom) {
     actions += `<button class="prog-btn danger" onclick="deleteProgram('${prog.id}')">Delete</button>`;
@@ -190,7 +188,7 @@ function renderProgramsListHtml() {
 
   // Create button or limit message
   if (customCount < MAX_CUSTOM_PROGRAMS) {
-    html += `<button class="finish-btn" style="margin-top:12px;" onclick="showCreateProgram()">+ Create New Program</button>`;
+    html += `<button class="finish-btn" style="margin-top:12px;" onclick="showProgramBuilder()">+ Create New Program</button>`;
   } else {
     html += `<p class="settings-empty-msg" style="text-align:center;margin-top:12px;">Maximum ${MAX_CUSTOM_PROGRAMS} custom programs reached. Delete one to create new.</p>`;
   }

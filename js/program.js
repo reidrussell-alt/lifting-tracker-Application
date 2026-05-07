@@ -59,9 +59,15 @@ export const program = {
   ]
 };
 
-// Maps fine-grained library muscle groups to the 7 chart-level groups.
-// Any library muscleGroup not listed here passes through unchanged.
+// Maps library muscleGroup values (new title-case and legacy lowercase) → 7 chart-level groups.
 const CHART_GROUP_NORM = {
+  // New title-case library categories
+  'Chest': 'chest', 'Biceps': 'biceps', 'Triceps': 'triceps', 'Core': 'core',
+  'Upper Back': 'back', 'Lats': 'back',
+  'Front Delts': 'shoulders', 'Side Delts': 'shoulders', 'Rear Delts': 'shoulders',
+  'Quads': 'legs', 'Hamstrings': 'legs', 'Glutes': 'legs', 'Calves': 'legs',
+  'Forearms': 'other',
+  // Legacy lowercase (kept for any residual values in stored data)
   quads: 'legs', hamstrings: 'legs', glutes: 'legs', calves: 'legs', abs: 'core'
 };
 
