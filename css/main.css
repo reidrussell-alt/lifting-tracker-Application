@@ -7,15 +7,19 @@
   --surface-3: #242424;
   --border: #262626;
   --border-bright: #383838;
-  --text: #fafafa;
-  --text-dim: #888;
-  --text-dimmer: #555;
   --accent: #d4ff3a;
+  --accent-dim: #a8c82a;   /* desaturated lime — secondary/supporting accent */
   --push: #ff6b35;
   --pull: #3a9eff;
   --legs: #d4ff3a;
   --recovery: #b86bff;
   --success: #4ade80;
+  /* 5-step gray scale */
+  --text: #fafafa;          /* primary text */
+  --text-secondary: #c0c0c0; /* secondary emphasis */
+  --text-dim: #888;          /* supporting labels */
+  --text-dimmer: #555;       /* de-emphasized */
+  --text-faint: #333;        /* near-invisible chrome */
 }
 
 html, body {
@@ -95,6 +99,13 @@ body { padding-bottom: 60px; }
   flex-shrink: 0;
 }
 
+/* Left-border type distinction on plan day cards */
+.day-card[data-type="push"]     { border-left: 3px solid rgba(255, 107,  53, 0.6); }
+.day-card[data-type="pull"]     { border-left: 3px solid rgba( 58, 158, 255, 0.6); }
+.day-card[data-type="legs"]     { border-left: 3px solid rgba(212, 255,  58, 0.6); }
+.day-card[data-type="recovery"] { border-left: 3px solid rgba(184, 107, 255, 0.6); }
+
+/* Badge color by type */
 .day-card[data-type="push"] .day-badge { border-color: var(--push); color: var(--push); }
 .day-card[data-type="pull"] .day-badge { border-color: var(--pull); color: var(--pull); }
 .day-card[data-type="legs"] .day-badge { border-color: var(--legs); color: var(--legs); }
@@ -207,7 +218,7 @@ body { padding-bottom: 60px; }
 
 .target-pill {
   background: var(--surface-3); padding: 4px 8px;
-  border-radius: 6px; color: var(--accent);
+  border-radius: 6px; color: var(--accent-dim);
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -523,7 +534,7 @@ body { padding-bottom: 60px; }
 
 .trend-up { background: rgba(74, 222, 128, 0.15); color: var(--success); }
 .trend-flat { background: rgba(136, 136, 136, 0.15); color: var(--text-dim); }
-.trend-new { background: rgba(212, 255, 58, 0.15); color: var(--accent); }
+.trend-new { background: rgba(168, 200, 42, 0.15); color: var(--accent-dim); }
 
 .history-detail {
   display: none;
@@ -687,14 +698,14 @@ body { padding-bottom: 60px; }
   margin-bottom: 12px; text-transform: uppercase;
 }
 
-.rules-card-title { color: var(--accent); }
+.rules-card-title { color: var(--accent-dim); }
 .data-section-title { color: var(--text-dim); }
 
 .rules-card .rule {
   display: flex; gap: 12px;
   padding: 12px 0;
   font-size: 13px; line-height: 1.65;
-  color: #b8b8b8;
+  color: var(--text-secondary);
 }
 
 .rules-card .rule-num {
@@ -977,7 +988,7 @@ body { padding-bottom: 60px; }
 
 .welcome-greeting-text {
   font-size: clamp(26px, 7vw, 36px);
-  color: #f4f4f4;
+  color: var(--text);
 }
 
 .welcome-name {
@@ -988,7 +999,7 @@ body { padding-bottom: 60px; }
 .welcome-tagline {
   font-family: 'Inter Tight', sans-serif;
   font-size: clamp(13px, 3.5vw, 16px);
-  color: #6e6e6e;
+  color: var(--text-dim);
   font-weight: 500;
   letter-spacing: 0.2px;
   margin-bottom: 28px;
@@ -1025,7 +1036,7 @@ body { padding-bottom: 60px; }
   bottom: calc(env(safe-area-inset-bottom, 20px) + 28px);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  color: #444;
+  color: var(--text-dimmer);
   letter-spacing: 1.5px;
   text-transform: uppercase;
   animation: wFadeIn 400ms ease-out both;
@@ -1121,8 +1132,8 @@ body { padding-bottom: 60px; }
   letter-spacing: 0.5px;
 }
 .program-active-badge {
-  background: rgba(212,255,58,0.15);
-  color: var(--accent);
+  background: rgba(168,200,42,0.15);
+  color: var(--accent-dim);
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px; font-weight: 700;
   letter-spacing: 1.5px; text-transform: uppercase;
@@ -1139,7 +1150,7 @@ body { padding-bottom: 60px; }
   letter-spacing: 1px; text-transform: uppercase;
   padding: 6px 10px; border-radius: 7px; cursor: pointer;
 }
-.prog-btn.accent { color: var(--accent); border-color: rgba(212,255,58,0.3); }
+.prog-btn.accent { color: var(--accent-dim); border-color: rgba(168,200,42,0.3); }
 .prog-btn.danger { color: var(--push); border-color: rgba(255,107,53,0.3); }
 
 /* ===== ONBOARDING ===== */
@@ -1270,8 +1281,8 @@ body { padding-bottom: 60px; }
 .ob-template-days-badge {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px; font-weight: 700;
-  color: var(--accent); letter-spacing: 1px;
-  background: rgba(212,255,58,0.1);
+  color: var(--accent-dim); letter-spacing: 1px;
+  background: rgba(168,200,42,0.1);
   padding: 3px 7px; border-radius: 5px;
   flex-shrink: 0;
 }

@@ -157,22 +157,37 @@ Defined in `program.js`. Rotation order: `upperA → lowerA → upperB → lower
 ## CSS variables (from :root)
 
 ```css
+/* Surfaces (dark → light) */
 --bg: #0a0a0a
 --surface: #141414
 --surface-2: #1c1c1c
 --surface-3: #242424
 --border: #262626
 --border-bright: #383838
---text: #fafafa
---text-dim: #888
---text-dimmer: #555
---accent: #d4ff3a        /* neon lime — primary accent throughout */
+
+/* 5-step gray scale (light → dark) */
+--text: #fafafa          /* primary text */
+--text-secondary: #c0c0c0 /* secondary emphasis */
+--text-dim: #888          /* supporting labels */
+--text-dimmer: #555       /* de-emphasized */
+--text-faint: #333        /* near-invisible chrome */
+
+/* Accent */
+--accent: #d4ff3a        /* neon lime — primary CTAs, key highlights */
+--accent-dim: #a8c82a    /* desaturated lime — secondary/supporting accent */
+
+/* Workout types */
 --push: #ff6b35
 --pull: #3a9eff
 --legs: #d4ff3a
 --recovery: #b86bff
 --success: #4ade80
 ```
+
+**Accent usage convention:**
+- Use `--accent` for primary interactive elements: tab.active, primary buttons, focus rings, key stat numbers, today indicator.
+- Use `--accent-dim` for supporting/metadata uses: target-pill, trend badges, section labels, metadata chips.
+- Use `rgba(212, 255, 58, 0.06–0.2)` for tinted backgrounds and subtle borders.
 
 ---
 
@@ -206,7 +221,7 @@ Splash screen shown on every app open. Tap to dismiss (no auto-dismiss).
 ## Service worker
 
 - Cache name must be bumped (v1 → v2 → v3...) on **every deploy** that changes JS/CSS files
-- Currently: `lift-tracker-v6`
+- Currently: `lift-tracker-v7`
 - SW is **disabled on localhost** — the hostname check in `app.js` prevents re-registration during development
 - On iOS, updating the PWA requires deleting the home screen app and re-adding it from Safari
 
