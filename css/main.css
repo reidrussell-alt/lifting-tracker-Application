@@ -1117,7 +1117,6 @@ body { padding-bottom: 60px; }
   padding: 14px;
   margin-bottom: 10px;
 }
-.program-item.active { border-color: var(--accent); }
 .program-item-top {
   display: flex; justify-content: space-between;
   align-items: flex-start; margin-bottom: 10px;
@@ -1131,15 +1130,6 @@ body { padding-bottom: 60px; }
   font-size: 10px; color: var(--text-dim);
   letter-spacing: 0.5px;
 }
-.program-active-badge {
-  background: rgba(168,200,42,0.15);
-  color: var(--accent-dim);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; font-weight: 700;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  padding: 3px 8px; border-radius: 4px;
-  flex-shrink: 0;
-}
 .program-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .prog-btn {
   background: var(--surface-3);
@@ -1152,6 +1142,60 @@ body { padding-bottom: 60px; }
 }
 .prog-btn.accent { color: var(--accent-dim); border-color: rgba(168,200,42,0.3); }
 .prog-btn.danger { color: var(--push); border-color: rgba(255,107,53,0.3); }
+.prog-btn.activate { color: var(--accent); border-color: rgba(212,255,58,0.35); }
+
+/* Program sections */
+.programs-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 20px 0 10px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.programs-section-label:first-child { margin-top: 4px; }
+
+/* Active program card — yellow border + subtle tint */
+.program-item.active {
+  border-color: var(--accent);
+  background: rgba(212, 255, 58, 0.04);
+}
+
+/* Active badge — solid yellow */
+.program-active-badge {
+  background: var(--accent);
+  color: var(--bg);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 5px;
+  flex-shrink: 0; margin-left: 10px;
+}
+
+/* Custom label in gray */
+.prog-custom-label {
+  color: var(--text-dim);
+  font-size: 12px; font-weight: 400;
+  margin-left: 4px;
+}
+
+/* Plan tab: last workout date */
+.day-last {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text-dimmer);
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+
+/* Plan tab: next workout star badge */
+.day-next-badge {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Multi-line confirm modal text */
+.modal-text { white-space: pre-line; }
 
 /* ===== ONBOARDING ===== */
 .onboarding-container {

@@ -3,6 +3,8 @@ import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.
 import { showToast, showConfirm } from './utils.js';
 import { getTimerSettings, setTimerEnabled, setTimerDuration, setTimerAlertEnabled, formatRestDuration } from './restTimer.js';
 
+const MAX_CUSTOM_PROGRAMS = 5;
+
 export function renderSettings() {
   const el = document.getElementById('settingsPage');
   if (!el) return;
@@ -35,7 +37,6 @@ export function renderSettings() {
       <div class="settings-section">
         <div class="settings-section-title">Programs</div>
         <div id="programsList">${renderProgramsListHtml()}</div>
-        <button class="finish-btn" style="margin-top:12px;" onclick="showCreateProgram()">+ Create New Program</button>
       </div>
     `;
   }
@@ -98,26 +99,103 @@ export function renderSettings() {
   el.innerHTML = html;
 }
 
-function renderProgramsListHtml() {
-  if (state.programs.length === 0) {
-    return '<p class="settings-empty-msg">No programs yet. Create your first one!</p>';
+function getTotalExercises(prog) {
+  return prog.days.reduce((sum, d) => sum + (d.exercises?.length || 0), 0);
+}
+
+function renderProgramCard(prog, isActive) {
+  const isCustom = prog.isCustom === true;
+  const totalExercises = getTotalExercises(prog);
+
+  const customLabel = isCustom
+    ? `<span class="prog-custom-label">(Custom)</span>`
+    : '';
+  const activeBadge = isActive
+    ? `<span class="program-active-badge">ACTIVE</span>`
+    : '';
+
+  let actions = '';
+  if (isCustom) {
+    actions += `<button class="prog-btn" onclick="editProgram('${prog.id}')">Edit</button>`;
   }
-  return state.programs.map(prog => `
-    <div class="program-item${prog.isActive ? ' active' : ''}">
+  actions += `<button class="prog-btn" onclick="duplicateProgram('${prog.id}')">Duplicate</button>`;
+  if (!isActive && isCustom) {
+    actions += `<button class="prog-btn danger" onclick="deleteProgram('${prog.id}')">Delete</button>`;
+  }
+  if (!isActive) {
+    actions += `<button class="prog-btn activate" onclick="setActiveProgram('${prog.id}')">Activate</button>`;
+  }
+
+  return `
+    <div class="program-item${isActive ? ' active' : ''}">
       <div class="program-item-top">
-        <div>
-          <div class="program-item-name">${prog.name}</div>
-          <div class="program-item-meta">${prog.days.length} day${prog.days.length !== 1 ? 's' : ''}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="program-item-name">${prog.name} ${customLabel}</div>
+          <div class="program-item-meta">${prog.days.length} workout day${prog.days.length !== 1 ? 's' : ''} · ${totalExercises} exercises</div>
         </div>
-        ${prog.isActive ? '<span class="program-active-badge">Active</span>' : ''}
+        ${activeBadge}
+      </div>
+      <div class="program-item-actions">${actions}</div>
+    </div>
+  `;
+}
+
+function renderTemplateCard(template) {
+  const totalExercises = template.days.reduce((sum, d) => sum + d.exercises.length, 0);
+  return `
+    <div class="program-item">
+      <div class="program-item-top">
+        <div style="flex:1;min-width:0;">
+          <div class="program-item-name">${template.name}</div>
+          <div class="program-item-meta">${template.daysPerWeek} workout days · ${totalExercises} exercises</div>
+        </div>
       </div>
       <div class="program-item-actions">
-        ${!prog.isActive ? `<button class="prog-btn accent" onclick="setActiveProgram('${prog.id}')">Set Active</button>` : ''}
-        <button class="prog-btn" onclick="duplicateProgram('${prog.id}')">Duplicate</button>
-        <button class="prog-btn danger" onclick="deleteProgram('${prog.id}')">Delete</button>
+        <button class="prog-btn" onclick="duplicateTemplate('${template.id}')">Duplicate</button>
+        <button class="prog-btn activate" onclick="activateTemplate('${template.id}')">Activate</button>
       </div>
     </div>
-  `).join('');
+  `;
+}
+
+function renderProgramsListHtml() {
+  const activeProgram = state.programs.find(p => p.isActive);
+  const customPrograms = state.programs.filter(p => p.isCustom === true && !p.isActive);
+  const customCount = state.programs.filter(p => p.isCustom === true).length;
+
+  let html = '';
+
+  // Section 1: Active Program
+  html += `<div class="programs-section-label">Active Program</div>`;
+  if (activeProgram) {
+    html += renderProgramCard(activeProgram, true);
+  } else {
+    html += `<p class="settings-empty-msg">No active program. Activate one below.</p>`;
+  }
+
+  // Section 2: Custom Programs
+  html += `<div class="programs-section-label">Your Custom Programs (${customCount}/${MAX_CUSTOM_PROGRAMS})</div>`;
+  if (customPrograms.length === 0) {
+    const msg = customCount === 0
+      ? 'No custom programs yet. Create one below.'
+      : 'Your custom program is currently active above.';
+    html += `<p class="settings-empty-msg">${msg}</p>`;
+  } else {
+    html += customPrograms.map(p => renderProgramCard(p, false)).join('');
+  }
+
+  // Section 3: Templates
+  html += `<div class="programs-section-label">Templates</div>`;
+  html += PROGRAM_TEMPLATES.map(t => renderTemplateCard(t)).join('');
+
+  // Create button or limit message
+  if (customCount < MAX_CUSTOM_PROGRAMS) {
+    html += `<button class="finish-btn" style="margin-top:12px;" onclick="showCreateProgram()">+ Create New Program</button>`;
+  } else {
+    html += `<p class="settings-empty-msg" style="text-align:center;margin-top:12px;">Maximum ${MAX_CUSTOM_PROGRAMS} custom programs reached. Delete one to create new.</p>`;
+  }
+
+  return html;
 }
 
 export function editProfileName() {
@@ -148,47 +226,143 @@ export function switchTrainingMode() {
 export function setActiveProgram(programId) {
   const prog = state.programs.find(p => p.id === programId);
   if (!prog) return;
-  showConfirm(`Switch active program to "${prog.name}"? Your workout history will remain intact.`, () => {
+  const current = state.programs.find(p => p.isActive);
+  const currentName = current ? current.name : '';
+  const msg = currentName
+    ? `Switch to "${prog.name}"?\n\nThis will replace "${currentName}" on the Plan tab.\n\nYour workout history will be preserved.`
+    : `Activate "${prog.name}"?`;
+  showConfirm(msg, () => {
     state.programs.forEach(p => { p.isActive = false; });
     prog.isActive = true;
     saveData();
     refreshProgramsList();
     window.renderPlan();
-    showToast(`Switched to "${prog.name}"`, 'success');
-  }, 'Switch');
+    showToast(`Activated: ${prog.name}`, 'success');
+  }, 'Activate');
 }
 
 export function deleteProgram(programId) {
   const prog = state.programs.find(p => p.id === programId);
   if (!prog) return;
-  if (prog.isActive && state.programs.length > 1) {
-    showToast('Set another program as active first');
+  if (prog.isActive) {
+    showToast('Cannot delete active program. Switch to another first.');
     return;
   }
-  showConfirm(`Delete "${prog.name}"? This cannot be undone.`, () => {
-    state.programs = state.programs.filter(p => p.id !== programId);
-    saveData();
-    refreshProgramsList();
-    window.renderPlan();
-    showToast(`Deleted "${prog.name}"`);
-  }, 'Delete');
+  showConfirm(
+    `Delete "${prog.name}"?\n\nThis will permanently delete the program and all its workout days.\n\nYour workout history will NOT be deleted.\n\nThis cannot be undone.`,
+    () => {
+      state.programs = state.programs.filter(p => p.id !== programId);
+      saveData();
+      refreshProgramsList();
+      window.renderPlan();
+      showToast(`Deleted: ${prog.name}`);
+    },
+    'Delete'
+  );
 }
 
 export function duplicateProgram(programId) {
   const prog = state.programs.find(p => p.id === programId);
   if (!prog) return;
-  const copy = JSON.parse(JSON.stringify(prog));
-  copy.id = `program_${Date.now()}`;
-  copy.name = `${prog.name} (Copy)`;
-  copy.isActive = false;
-  copy.createdAt = new Date().toISOString();
-  state.programs.push(copy);
+
+  const customCount = state.programs.filter(p => p.isCustom === true).length;
+  if (customCount >= MAX_CUSTOM_PROGRAMS) {
+    showToast(`Max ${MAX_CUSTOM_PROGRAMS} custom programs. Delete one first.`);
+    return;
+  }
+
+  const copyName = `${prog.name} (Copy)`;
+  showConfirm(
+    `Create a copy of "${prog.name}"?\n\nThe copy will be saved as "${copyName}".\n\nYou can rename it after creation.`,
+    () => {
+      const copy = JSON.parse(JSON.stringify(prog));
+      copy.id = `program_${Date.now()}`;
+      copy.name = copyName;
+      copy.isActive = false;
+      copy.isCustom = true;
+      copy.templateId = null;
+      copy.createdAt = new Date().toISOString();
+      state.programs.push(copy);
+      saveData();
+      refreshProgramsList();
+      showToast(`Duplicated: ${copyName}`, 'success');
+    },
+    'Duplicate'
+  );
+}
+
+export function activateTemplate(templateId) {
+  const template = PROGRAM_TEMPLATES.find(t => t.id === templateId);
+  if (!template) return;
+
+  const current = state.programs.find(p => p.isActive);
+  const currentName = current ? current.name : '';
+  const msg = currentName
+    ? `Switch to "${template.name}"?\n\nThis will replace "${currentName}" on the Plan tab.\n\nYour workout history will be preserved.`
+    : `Activate "${template.name}"?`;
+
+  showConfirm(msg, () => {
+    // Reuse existing non-custom program from this template if one exists
+    const existing = state.programs.find(p => p.templateId === templateId && !p.isCustom);
+    state.programs.forEach(p => { p.isActive = false; });
+    if (existing) {
+      existing.isActive = true;
+    } else {
+      const newProg = buildProgramFromTemplate(template.name, template, true, false);
+      state.programs.push(newProg);
+    }
+    saveData();
+    refreshProgramsList();
+    window.renderPlan();
+    showToast(`Activated: ${template.name}`, 'success');
+  }, 'Activate');
+}
+
+export function duplicateTemplate(templateId) {
+  const template = PROGRAM_TEMPLATES.find(t => t.id === templateId);
+  if (!template) return;
+
+  const customCount = state.programs.filter(p => p.isCustom === true).length;
+  if (customCount >= MAX_CUSTOM_PROGRAMS) {
+    showToast(`Max ${MAX_CUSTOM_PROGRAMS} custom programs. Delete one first.`);
+    return;
+  }
+
+  const copyName = `${template.name} (Copy)`;
+  showConfirm(
+    `Create a copy of "${template.name}"?\n\nThe copy will be saved as "${copyName}" and added to your custom programs.`,
+    () => {
+      const copy = buildProgramFromTemplate(copyName, template, false, true);
+      state.programs.push(copy);
+      saveData();
+      refreshProgramsList();
+      showToast(`Duplicated: ${copyName}`, 'success');
+    },
+    'Duplicate'
+  );
+}
+
+export function editProgram(programId) {
+  const prog = state.programs.find(p => p.id === programId);
+  if (!prog) return;
+  const name = prompt('Rename program:', prog.name);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) { showToast('Name cannot be empty'); return; }
+  prog.name = trimmed;
   saveData();
   refreshProgramsList();
-  showToast(`Duplicated "${prog.name}"`, 'success');
+  window.renderPlan();
+  showToast('Program renamed ✓', 'success');
 }
 
 export function showCreateProgram() {
+  const customCount = state.programs.filter(p => p.isCustom === true).length;
+  if (customCount >= MAX_CUSTOM_PROGRAMS) {
+    showToast(`Max ${MAX_CUSTOM_PROGRAMS} custom programs. Delete one first.`);
+    return;
+  }
+
   const templateOptions = PROGRAM_TEMPLATES.map(t =>
     `<option value="${t.id}">${t.name} (${t.daysPerWeek}×/week)</option>`
   ).join('');
@@ -232,14 +406,14 @@ export function confirmCreateProgram() {
   if (!template) { showToast('Please select a template'); return; }
 
   const hasActive = state.programs.some(p => p.isActive);
-  const newProg = buildProgramFromTemplate(name, template, !hasActive);
+  const newProg = buildProgramFromTemplate(name, template, !hasActive, true);
 
   state.programs.push(newProg);
   saveData();
   closeCreateProgram();
   refreshProgramsList();
   window.renderPlan();
-  showToast(`Created "${name}"`, 'success');
+  showToast(`Created: ${name}`, 'success');
 }
 
 function refreshProgramsList() {

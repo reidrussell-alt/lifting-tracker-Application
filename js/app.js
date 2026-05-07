@@ -4,7 +4,7 @@ import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistory
 import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
-import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert } from './settings.js';
+import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert } from './settings.js';
 import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility } from './restTimer.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
 import { state } from './data.js';
@@ -93,6 +93,9 @@ window.switchTrainingMode = switchTrainingMode;
 window.setActiveProgram = setActiveProgram;
 window.deleteProgram = deleteProgram;
 window.duplicateProgram = duplicateProgram;
+window.activateTemplate = activateTemplate;
+window.duplicateTemplate = duplicateTemplate;
+window.editProgram = editProgram;
 window.showCreateProgram = showCreateProgram;
 window.closeCreateProgram = closeCreateProgram;
 window.confirmCreateProgram = confirmCreateProgram;

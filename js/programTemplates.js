@@ -174,11 +174,13 @@ export function getTemplateById(id) {
   return PROGRAM_TEMPLATES.find(t => t.id === id);
 }
 
-export function buildProgramFromTemplate(name, template, isActive = false) {
+export function buildProgramFromTemplate(name, template, isActive = false, isCustom = false) {
   return {
     id: `program_${Date.now()}`,
     name,
     isActive,
+    isCustom,
+    templateId: isCustom ? null : (template.id || null),
     createdAt: new Date().toISOString(),
     days: template.days.map(day => ({
       id: day.id,
