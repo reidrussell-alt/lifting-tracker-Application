@@ -1380,6 +1380,79 @@ body { padding-bottom: 60px; }
   color: var(--accent);
 }
 
+/* ===== EXERCISE REORDER MODE ===== */
+.reorder-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.reorder-toggle-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 7px 14px;
+}
+
+.exercise-reorder-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  user-select: none;
+  touch-action: pan-y; /* allow scroll, Sortable handles x-start */
+}
+.exercise-reorder-card.complete { border-color: rgba(74, 222, 128, 0.3); }
+
+.reorder-handle {
+  color: var(--text-dimmer);
+  cursor: grab;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 4px 2px;
+  touch-action: none;
+}
+.reorder-handle:active { cursor: grabbing; }
+
+.reorder-info { flex: 1; min-width: 0; }
+.reorder-name {
+  font-size: 14px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.reorder-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text-dim); letter-spacing: 0.5px; margin-top: 3px;
+}
+.reorder-check { color: var(--success); flex-shrink: 0; display: flex; align-items: center; }
+
+/* Sortable.js drag states */
+.sortable-ghost {
+  opacity: 0.35;
+  background: var(--surface-2);
+  border-style: dashed;
+}
+.sortable-chosen { background: var(--surface-2); }
+.sortable-drag {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  border-color: rgba(212, 255, 58, 0.4) !important;
+  background: var(--surface-2);
+}
+
 /* Session page — abandon link */
 .abandon-link {
   display: block; text-align: center; width: 100%;

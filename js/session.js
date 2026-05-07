@@ -2,6 +2,8 @@ import { state, saveData, saveCurrentSession } from './data.js';
 import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
 import { todayDateString, formatDate, showToast, showConfirm } from './utils.js';
 
+let _reorderMode = false;
+
 export function getLastPerformance(exerciseId) {
   for (let i = state.history.length - 1; i >= 0; i--) {
     const sess = state.history[i];
@@ -154,6 +156,7 @@ function _doStartTrackAsYouGo() {
 }
 
 export function leaveSession() {
+  _reorderMode = false;
   window.switchTab('plan');
 }
 
@@ -161,6 +164,7 @@ export function renderSession() {
   const sess = state.currentSession;
   const el = document.getElementById('sessionPage');
   const metaTag = (sess.tag || 'LIFT').toUpperCase();
+  const canReorder = sess.exercises.length >= 2;
 
   let html = `
     <div class="session-header">
@@ -169,7 +173,14 @@ export function renderSession() {
           <div class="session-day-name">${sess.dayTitle}</div>
           <div class="session-meta-row">${metaTag} · ${sess.exercises.length} EXERCISE${sess.exercises.length !== 1 ? 'S' : ''}</div>
         </div>
-        <button class="back-btn" onclick="leaveSession()">←</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${canReorder ? `
+            <button class="reorder-toggle-btn${_reorderMode ? ' active' : ''}" onclick="toggleReorderMode()">
+              ${_reorderMode ? 'Done' : '⇅'}
+            </button>
+          ` : ''}
+          <button class="back-btn" onclick="leaveSession()">←</button>
+        </div>
       </div>
       <div class="bw-input-wrap">
         <span class="bw-label">Workout Date</span>
@@ -184,121 +195,182 @@ export function renderSession() {
     </div>
   `;
 
-  sess.exercises.forEach((ex, exIdx) => {
-    const allLogged = ex.sets.every(s => s.logged);
-    const last = getLastPerformance(ex.id);
-    const suggestion = getSuggestion(ex, last);
-    const lastInfo = getLastSetsString(ex.id, last);
-    const lastNote = getLastExerciseNote(ex.id, last);
-    const targetSets = ex.targetSets || ex.sets.length;
-    const pillLabel = ex.repRange ? `${targetSets}×${ex.repRange}` : `${targetSets} sets`;
-
-    html += `
-      <div class="exercise-block ${allLogged && ex.sets.length >= targetSets ? 'complete' : ''}">
-        <div class="exercise-header">
-          <div class="exercise-name">
-            <span>${ex.name}</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <span class="target-pill">${pillLabel}</span>
-              ${sess.isTrackAsYouGo ? `
-                <button onclick="removeExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;" title="Remove exercise">×</button>
-              ` : ''}
-            </div>
+  if (_reorderMode) {
+    // Simplified drag-and-drop reorder cards
+    html += `<div id="exerciseList">`;
+    sess.exercises.forEach((ex) => {
+      const loggedSets = ex.sets.filter(s => s.logged).length;
+      const targetSets = ex.targetSets || ex.sets.length;
+      const allLogged = ex.sets.length > 0 && ex.sets.every(s => s.logged);
+      html += `
+        <div class="exercise-reorder-card${allLogged ? ' complete' : ''}">
+          <div class="reorder-handle">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+            </svg>
           </div>
-          ${suggestion ? `
-            <div class="suggestion">
-              <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span>Suggestion: <strong>${suggestion.msg}</strong></span>
-            </div>
-          ` : `
-            <div class="suggestion" style="background:rgba(212,255,58,0.04);color:var(--text-dimmer);">
-              <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span>First time — start at a comfortable weight</span>
-            </div>
-          `}
-          ${lastNote ? `
-            <div class="ex-last-note">
-              <span class="ex-last-note-label">📝 Last note (${lastNote.date})</span>
-              <span class="ex-last-note-text">${lastNote.note}</span>
+          <div class="reorder-info">
+            <div class="reorder-name">${ex.name}</div>
+            <div class="reorder-meta">${loggedSets} / ${targetSets} sets logged</div>
+          </div>
+          ${allLogged ? `
+            <div class="reorder-check">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
           ` : ''}
         </div>
-        <div class="sets-list">
-    `;
-
-    ex.sets.forEach((set, setIdx) => {
-      const isExtra = setIdx >= targetSets;
-      const rowCls = `set-row ${set.logged ? 'logged' : ''} ${ex.loadType === 'bw' ? 'bw-row' : ''} ${isExtra ? 'extra' : ''}`;
-      const setNumLabel = isExtra ? `+${setIdx - targetSets + 1}` : (setIdx + 1);
-      const noteBtnCls = `icon-btn ${set.note ? 'has-note' : ''}`;
-
-      html += `
-        <div class="${rowCls}" data-ex="${exIdx}" data-set="${setIdx}">
-          <div class="set-num">${setNumLabel}</div>
-          ${ex.loadType === 'bw' ? `
-            <div class="set-input-wrap">
-              <span class="set-input-label">Reps</span>
-              <input type="number" inputmode="numeric" class="set-input" value="${set.reps}" placeholder="—"
-                     onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
-            </div>
-          ` : `
-            <div class="set-input-wrap">
-              <span class="set-input-label">Lb</span>
-              <input type="number" inputmode="decimal" class="set-input" value="${set.weight}" placeholder="—"
-                     onchange="updateSet(${exIdx}, ${setIdx}, 'weight', this.value)">
-            </div>
-            <div class="set-input-wrap">
-              <span class="set-input-label">Reps</span>
-              <input type="number" inputmode="numeric" class="set-input" value="${set.reps}" placeholder="—"
-                     onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
-            </div>
-          `}
-          <button class="${noteBtnCls}" onclick="toggleNote(${exIdx}, ${setIdx})" title="Note">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-          </button>
-          <button class="icon-btn ${set.logged ? 'logged' : ''}" onclick="toggleSetLogged(${exIdx}, ${setIdx})">
-            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-          </button>
-        </div>
-        ${(set.noteOpen || set.note) ? `
-          <div class="note-row">
-            <textarea class="note-input" placeholder="Note for set ${setNumLabel}..."
-                      oninput="updateSet(${exIdx}, ${setIdx}, 'note', this.value)"
-                      rows="1">${set.note}</textarea>
-          </div>
-        ` : ''}
       `;
     });
+    html += `</div>`;
+  } else {
+    // Normal mode — full exercise blocks
+    sess.exercises.forEach((ex, exIdx) => {
+      const allLogged = ex.sets.every(s => s.logged);
+      const last = getLastPerformance(ex.id);
+      const suggestion = getSuggestion(ex, last);
+      const lastInfo = getLastSetsString(ex.id, last);
+      const lastNote = getLastExerciseNote(ex.id, last);
+      const targetSets = ex.targetSets || ex.sets.length;
+      const pillLabel = ex.repRange ? `${targetSets}×${ex.repRange}` : `${targetSets} sets`;
 
-    html += `<button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Set</button>`;
-
-    if (lastInfo) {
       html += `
-        <div class="last-time-row">
-          <span><strong>Last (${lastInfo.date}):</strong></span>
-          <span>${lastInfo.sets}</span>
-        </div>
+        <div class="exercise-block ${allLogged && ex.sets.length >= targetSets ? 'complete' : ''}">
+          <div class="exercise-header">
+            <div class="exercise-name">
+              <span>${ex.name}</span>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span class="target-pill">${pillLabel}</span>
+                ${sess.isTrackAsYouGo ? `
+                  <button onclick="removeExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;" title="Remove exercise">×</button>
+                ` : ''}
+              </div>
+            </div>
+            ${suggestion ? `
+              <div class="suggestion">
+                <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Suggestion: <strong>${suggestion.msg}</strong></span>
+              </div>
+            ` : `
+              <div class="suggestion" style="background:rgba(212,255,58,0.04);color:var(--text-dimmer);">
+                <svg class="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>First time — start at a comfortable weight</span>
+              </div>
+            `}
+            ${lastNote ? `
+              <div class="ex-last-note">
+                <span class="ex-last-note-label">📝 Last note (${lastNote.date})</span>
+                <span class="ex-last-note-text">${lastNote.note}</span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="sets-list">
       `;
-    }
-    html += `
-      <div class="ex-note-wrap">
-        <textarea class="ex-note-input"
-                  placeholder="Notes for next time (technique, soreness, etc.)"
-                  oninput="updateExerciseNote(${exIdx}, this.value)"
-                  rows="2">${ex.note}</textarea>
-      </div>
-    </div></div>`;
-  });
 
-  if (sess.isTrackAsYouGo) {
-    html += `<button class="add-exercise-fab" onclick="showExercisePicker()">+ Add Exercise</button>`;
+      ex.sets.forEach((set, setIdx) => {
+        const isExtra = setIdx >= targetSets;
+        const rowCls = `set-row ${set.logged ? 'logged' : ''} ${ex.loadType === 'bw' ? 'bw-row' : ''} ${isExtra ? 'extra' : ''}`;
+        const setNumLabel = isExtra ? `+${setIdx - targetSets + 1}` : (setIdx + 1);
+        const noteBtnCls = `icon-btn ${set.note ? 'has-note' : ''}`;
+
+        html += `
+          <div class="${rowCls}" data-ex="${exIdx}" data-set="${setIdx}">
+            <div class="set-num">${setNumLabel}</div>
+            ${ex.loadType === 'bw' ? `
+              <div class="set-input-wrap">
+                <span class="set-input-label">Reps</span>
+                <input type="number" inputmode="numeric" class="set-input" value="${set.reps}" placeholder="—"
+                       onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
+              </div>
+            ` : `
+              <div class="set-input-wrap">
+                <span class="set-input-label">Lb</span>
+                <input type="number" inputmode="decimal" class="set-input" value="${set.weight}" placeholder="—"
+                       onchange="updateSet(${exIdx}, ${setIdx}, 'weight', this.value)">
+              </div>
+              <div class="set-input-wrap">
+                <span class="set-input-label">Reps</span>
+                <input type="number" inputmode="numeric" class="set-input" value="${set.reps}" placeholder="—"
+                       onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
+              </div>
+            `}
+            <button class="${noteBtnCls}" onclick="toggleNote(${exIdx}, ${setIdx})" title="Note">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            </button>
+            <button class="icon-btn ${set.logged ? 'logged' : ''}" onclick="toggleSetLogged(${exIdx}, ${setIdx})">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+          ${(set.noteOpen || set.note) ? `
+            <div class="note-row">
+              <textarea class="note-input" placeholder="Note for set ${setNumLabel}..."
+                        oninput="updateSet(${exIdx}, ${setIdx}, 'note', this.value)"
+                        rows="1">${set.note}</textarea>
+            </div>
+          ` : ''}
+        `;
+      });
+
+      html += `<button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Set</button>`;
+
+      if (lastInfo) {
+        html += `
+          <div class="last-time-row">
+            <span><strong>Last (${lastInfo.date}):</strong></span>
+            <span>${lastInfo.sets}</span>
+          </div>
+        `;
+      }
+      html += `
+        <div class="ex-note-wrap">
+          <textarea class="ex-note-input"
+                    placeholder="Notes for next time (technique, soreness, etc.)"
+                    oninput="updateExerciseNote(${exIdx}, this.value)"
+                    rows="2">${ex.note}</textarea>
+        </div>
+      </div></div>`;
+    });
+
+    if (sess.isTrackAsYouGo) {
+      html += `<button class="add-exercise-fab" onclick="showExercisePicker()">+ Add Exercise</button>`;
+    }
+
+    html += `
+      <button class="finish-btn" onclick="finishSession()">Finish & Save Session</button>
+      <button class="abandon-link" onclick="abandonSession()">Discard Session</button>
+    `;
   }
 
-  html += `
-    <button class="finish-btn" onclick="finishSession()">Finish & Save Session</button>
-    <button class="abandon-link" onclick="abandonSession()">Discard Session</button>
-  `;
   el.innerHTML = html;
+
+  if (_reorderMode) {
+    _initSortable();
+  }
+}
+
+export function toggleReorderMode() {
+  _reorderMode = !_reorderMode;
+  renderSession();
+}
+
+function _initSortable() {
+  const list = document.getElementById('exerciseList');
+  if (!list || typeof Sortable === 'undefined') return;
+
+  new Sortable(list, {
+    handle: '.reorder-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt;
+      if (oldIndex === newIndex) return;
+      const moved = state.currentSession.exercises.splice(oldIndex, 1)[0];
+      state.currentSession.exercises.splice(newIndex, 0, moved);
+      saveCurrentSession();
+      // DOM already updated by Sortable — no re-render needed
+    }
+  });
 }
 
 export function updateBw(val) { state.currentSession.bw = val; saveCurrentSession(); }
