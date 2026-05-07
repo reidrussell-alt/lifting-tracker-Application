@@ -75,6 +75,24 @@
   </div>
 </div>
 
+<!-- Calendar Day Modal — bottom sheet -->
+<div class="modal-bg" id="calendarDayModal" onclick="closeCalendarDay()">
+  <div class="bottom-sheet" onclick="event.stopPropagation()">
+    <div id="calendarDayBody"></div>
+  </div>
+</div>
+
+<!-- Session Full Edit Modal -->
+<div class="modal-bg" id="sessionEditModal">
+  <div class="modal" style="max-width:480px;text-align:left;max-height:90vh;overflow-y:auto;">
+    <div id="sessionEditBody"></div>
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="modal-btn" onclick="closeSessionEdit()">Cancel</button>
+      <button class="modal-btn primary" onclick="saveSessionEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="confirmModal">
   <div class="modal">
     <div class="modal-text" id="confirmModalText"></div>

@@ -160,6 +160,67 @@ export function leaveSession() {
   window.switchTab('plan');
 }
 
+export function startManualEntry(dayId, dateKey) {
+  if (state.currentSession) {
+    showConfirm(
+      `Abandon "${state.currentSession.dayTitle}" and start manual entry?`,
+      () => _doStartManualEntry(dayId, dateKey),
+      'Start Entry'
+    );
+    return;
+  }
+  _doStartManualEntry(dayId, dateKey);
+}
+
+function _doStartManualEntry(dayId, dateKey) {
+  if (!dayId) {
+    // Track As You Go with preset date
+    const d = new Date(dateKey + 'T12:00:00');
+    state.currentSession = {
+      programId: null,
+      programName: 'Track As You Go',
+      dayId: `workout_${Date.now()}`,
+      dayTitle: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+      tag: 'TRACK',
+      bw: getLastBw(),
+      date: dateKey,
+      startedAt: new Date().toISOString(),
+      isTrackAsYouGo: true,
+      exercises: []
+    };
+  } else {
+    // Structured workout with preset date
+    const activeProgram = state.programs.find(p => p.isActive);
+    if (!activeProgram) { window.switchTab('plan'); return; }
+    const day = activeProgram.days.find(d => d.id === dayId);
+    if (!day) return;
+
+    state.currentSession = {
+      programId: activeProgram.id,
+      programName: activeProgram.name,
+      dayId,
+      dayTitle: day.name,
+      tag: day.type || 'LIFT',
+      bw: getLastBw(),
+      date: dateKey,
+      startedAt: new Date().toISOString(),
+      isTrackAsYouGo: false,
+      exercises: day.exercises.map(ex => ({
+        id: ex.id,
+        name: ex.name,
+        loadType: ex.loadType,
+        repRange: ex.repRange || '',
+        targetSets: ex.sets,
+        note: '',
+        sets: Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
+      }))
+    };
+  }
+
+  saveCurrentSession();
+  window.switchTab('session');
+}
+
 export function renderSession() {
   const sess = state.currentSession;
   const el = document.getElementById('sessionPage');

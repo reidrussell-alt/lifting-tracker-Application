@@ -1,7 +1,7 @@
 import { state, saveData } from './data.js';
 import { MUSCLE_GROUPS } from './program.js';
 import { MUSCLE_GROUP_ORDER, MUSCLE_GROUP_META } from './exerciseLibrary.js';
-import { formatDate, formatDateShort, isoDateOnly, showToast, showConfirm } from './utils.js';
+import { formatDate, formatDateShort, isoDateOnly, todayDateString, showToast, showConfirm } from './utils.js';
 import { drawSingleLineChart } from './charts.js';
 
 const FALLBACK_COLORS = ['#ff6b35','#d4ff3a','#3a9eff','#b86bff','#4ade80','#f472b6','#fb923c','#60a5fa'];
@@ -85,7 +85,7 @@ function renderCalendar() {
                     today.getDate() === d;
 
     html += `
-      <div class="cal-day${isToday ? ' cal-day--today' : ''}">
+      <div class="cal-day${isToday ? ' cal-day--today' : ''}" onclick="openCalendarDay('${key}')">
         <span class="cal-day-num">${d}</span>
         <div class="cal-dots">
           ${sessions.map(s =>
@@ -464,4 +464,209 @@ export function deleteEditSession() {
     showToast('Deleted ✓');
     renderProgress();
   }, 'Delete');
+}
+
+// ===== CALENDAR DAY INTERACTION =====
+
+export function openCalendarDay(dateKey) {
+  const sessionsOnDay = state.history
+    .map((s, idx) => ({ ...s, _idx: idx }))
+    .filter(s => s.date.split('T')[0] === dateKey);
+
+  const d = new Date(dateKey + 'T12:00:00');
+  const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const isFuture = dateKey > todayDateString();
+
+  let html = `
+    <div class="cday-header">
+      <div class="cday-title">${dateLabel}</div>
+      <button class="cday-close" onclick="closeCalendarDay()">✕</button>
+    </div>
+  `;
+
+  if (sessionsOnDay.length > 0) {
+    sessionsOnDay.forEach(sess => {
+      const sessionIdx = sess._idx;
+      const totalSets = sess.exercises.reduce((s, e) => s + e.sets.length, 0);
+      html += `
+        <div class="cday-session">
+          <div class="cday-session-name">${sess.dayTitle}</div>
+          <div class="cday-session-meta">
+            ${sess.exercises.length} exercise${sess.exercises.length !== 1 ? 's' : ''} ·
+            ${totalSets} sets${sess.bw ? ` · ${sess.bw} lb BW` : ''}
+          </div>
+          <div class="cday-exercises">
+            ${sess.exercises.map(ex => {
+              const topVal = ex.loadType === 'bw'
+                ? `${Math.max(0, ...ex.sets.map(s => parseInt(s.reps) || 0))} reps`
+                : `${Math.max(0, ...ex.sets.map(s => parseFloat(s.weight) || 0))} lb`;
+              return `
+                <div class="cday-ex">
+                  <span class="cday-ex-name">${ex.name}</span>
+                  <span class="cday-ex-sets">${ex.sets.length}× · top ${topVal}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div class="cday-actions">
+            <button class="modal-btn" onclick="closeCalendarDay(); openSessionEdit(${sessionIdx})">Edit</button>
+            <button class="modal-btn cday-delete-btn" onclick="deleteSession(${sessionIdx})">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    html += `<div class="cday-empty"><p>No workout logged for this date.</p></div>`;
+  }
+
+  if (!isFuture) {
+    html += `
+      <button class="finish-btn" style="margin-top:8px;" onclick="openManualWorkoutSelect('${dateKey}')">
+        + Add Workout
+      </button>
+    `;
+  }
+
+  document.getElementById('calendarDayBody').innerHTML = html;
+  document.getElementById('calendarDayModal').classList.add('active');
+}
+
+export function closeCalendarDay() {
+  document.getElementById('calendarDayModal').classList.remove('active');
+}
+
+export function openManualWorkoutSelect(dateKey) {
+  const d = new Date(dateKey + 'T12:00:00');
+  const dateLabel = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const isTrackAsYouGo = state.profile?.trainingMode === 'trackAsYouGo';
+  const activeProgram = state.programs.find(p => p.isActive);
+
+  let html = `
+    <div class="cday-header">
+      <div class="cday-title">Add Workout</div>
+      <button class="cday-close" onclick="closeCalendarDay()">✕</button>
+    </div>
+    <div class="cday-sub">${dateLabel}</div>
+    <div class="cday-sub-label">Select a workout:</div>
+  `;
+
+  if (!isTrackAsYouGo && activeProgram) {
+    activeProgram.days.forEach(day => {
+      const totalSets = day.exercises.reduce((s, e) => s + e.sets, 0);
+      html += `
+        <div class="manual-day-card" onclick="closeCalendarDay(); startManualEntry('${day.id}', '${dateKey}')">
+          <div class="manual-day-name">${day.name}</div>
+          <div class="manual-day-meta">${day.exercises.length} exercises · ${totalSets} sets</div>
+        </div>
+      `;
+    });
+  }
+
+  html += `
+    <div class="manual-day-card" onclick="closeCalendarDay(); startManualEntry(null, '${dateKey}')">
+      <div class="manual-day-name">Track As You Go</div>
+      <div class="manual-day-meta">Add exercises as you go</div>
+    </div>
+    <button class="modal-btn" style="width:100%;margin-top:8px;" onclick="closeCalendarDay()">Cancel</button>
+  `;
+
+  document.getElementById('calendarDayBody').innerHTML = html;
+}
+
+export function openSessionEdit(sessionIdx) {
+  const session = state.history[sessionIdx];
+  if (!session) return;
+  const dateStr = isoDateOnly(session.date);
+
+  let html = `
+    <div class="modal-title" style="text-align:left;">Edit Workout</div>
+    <div class="edit-section">
+      <div class="edit-label">Date</div>
+      <input type="date" id="seDate" class="edit-date-input" value="${dateStr}" max="${todayDateString()}">
+      <div class="edit-helper">Changing the date moves this workout on the calendar.</div>
+    </div>
+    <div class="edit-section">
+      <div class="edit-label">Bodyweight (lb)</div>
+      <input type="number" inputmode="decimal" id="seBw" class="edit-date-input" value="${session.bw || ''}" placeholder="—">
+    </div>
+  `;
+
+  session.exercises.forEach((ex, exIdx) => {
+    html += `<div class="edit-label" style="margin-bottom:8px;">${ex.name}</div>`;
+    ex.sets.forEach((set, setIdx) => {
+      html += `
+        <div class="edit-set-row">
+          <div class="edit-set-inputs">
+            <div class="edit-set-num">#${setIdx + 1}</div>
+            ${ex.loadType === 'bw' ? `
+              <input type="number" inputmode="numeric" class="se-reps edit-input"
+                     data-ex="${exIdx}" data-set="${setIdx}" value="${set.reps}" placeholder="reps">
+            ` : `
+              <input type="number" inputmode="decimal" class="se-weight edit-input"
+                     data-ex="${exIdx}" data-set="${setIdx}" value="${set.weight}" placeholder="lb">
+              <span class="edit-sep">×</span>
+              <input type="number" inputmode="numeric" class="se-reps edit-input"
+                     data-ex="${exIdx}" data-set="${setIdx}" value="${set.reps}" placeholder="reps">
+            `}
+          </div>
+        </div>
+      `;
+    });
+  });
+
+  const modal = document.getElementById('sessionEditModal');
+  modal.dataset.sessionIdx = sessionIdx;
+  document.getElementById('sessionEditBody').innerHTML = html;
+  modal.classList.add('active');
+}
+
+export function closeSessionEdit() {
+  document.getElementById('sessionEditModal').classList.remove('active');
+}
+
+export function saveSessionEdit() {
+  const modal = document.getElementById('sessionEditModal');
+  const sessionIdx = parseInt(modal.dataset.sessionIdx);
+  const session = state.history[sessionIdx];
+  if (!session) return;
+
+  const newDate = document.getElementById('seDate').value;
+  if (newDate) {
+    if (newDate > todayDateString()) { showToast('Date cannot be in the future'); return; }
+    session.date = new Date(newDate + 'T12:00:00').toISOString();
+  }
+  session.bw = document.getElementById('seBw').value || '';
+
+  session.exercises.forEach((ex, exIdx) => {
+    ex.sets.forEach((set, setIdx) => {
+      const wEl = document.querySelector(`.se-weight[data-ex="${exIdx}"][data-set="${setIdx}"]`);
+      const rEl = document.querySelector(`.se-reps[data-ex="${exIdx}"][data-set="${setIdx}"]`);
+      if (wEl) set.weight = wEl.value;
+      if (rEl) set.reps = rEl.value;
+    });
+  });
+
+  // Keep history in chronological order after a potential date change
+  state.history.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  saveData();
+  closeSessionEdit();
+  showToast('Workout updated ✓', 'success');
+  renderProgress();
+}
+
+export function deleteSession(sessionIdx) {
+  const session = state.history[sessionIdx];
+  if (!session) return;
+  showConfirm(
+    `Delete "${session.dayTitle}" on ${formatDateShort(session.date)}? This cannot be undone.`,
+    () => {
+      state.history.splice(sessionIdx, 1);
+      saveData();
+      closeCalendarDay();
+      showToast('Workout deleted');
+      renderProgress();
+    },
+    'Delete'
+  );
 }

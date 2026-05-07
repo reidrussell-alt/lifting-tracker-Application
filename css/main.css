@@ -1332,6 +1332,87 @@ body { padding-bottom: 60px; }
 }
 .add-exercise-fab:active { background: var(--surface-2); }
 
+/* ===== CALENDAR DAY INTERACTION ===== */
+.cal-day { cursor: pointer; transition: background 0.1s; }
+.cal-day:active { background: var(--surface-2); border-radius: 6px; }
+.cal-day--empty { cursor: default; pointer-events: none; }
+
+/* Bottom sheet — calendar day modal */
+#calendarDayModal.active { align-items: flex-end; padding: 0; }
+.bottom-sheet {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border-bright);
+  width: 100%; max-width: 560px;
+  max-height: 85vh; overflow-y: auto;
+  padding: 20px 16px 36px;
+  animation: slide-up 0.22s ease;
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Calendar day modal content */
+.cday-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 14px;
+}
+.cday-title { font-family: 'Archivo Black', sans-serif; font-size: 15px; }
+.cday-close {
+  background: none; border: none;
+  color: var(--text-dim); font-size: 18px;
+  cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+.cday-sub {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 14px;
+}
+.cday-sub-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cday-session {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; margin-bottom: 10px;
+}
+.cday-session-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.cday-session-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.cday-exercises { border-top: 1px solid var(--border); }
+.cday-ex {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.cday-ex:last-child { border-bottom: none; }
+.cday-ex-name { color: var(--text); }
+.cday-ex-sets {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text-dim); flex-shrink: 0; margin-left: 8px;
+}
+.cday-actions { display: flex; gap: 8px; margin-top: 12px; }
+.cday-delete-btn { color: var(--push) !important; border-color: rgba(255,107,53,0.4) !important; }
+.cday-empty {
+  text-align: center; color: var(--text-dim);
+  padding: 24px 0 16px; font-size: 14px;
+}
+
+/* Manual workout selection cards */
+.manual-day-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 8px;
+  cursor: pointer; transition: border-color 0.15s, background 0.1s;
+}
+.manual-day-card:active { border-color: var(--accent); background: var(--surface-3); }
+.manual-day-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.manual-day-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim);
+}
+
 /* ===== ACTIVE WORKOUT BANNER ===== */
 .active-workout-banner {
   display: none; /* shown via JS when session is active */

@@ -1,7 +1,7 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
 import { showWelcomeScreen } from './welcome.js';
-import { renderProgress, updateMuscleGroupExercise, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar } from './progress.js';
-import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession, toggleReorderMode } from './session.js';
+import { renderProgress, updateMuscleGroupExercise, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, deleteSession } from './progress.js';
+import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram } from './settings.js';
@@ -69,6 +69,13 @@ window.closeEditModal = closeEditModal;
 window.saveEdit = saveEdit;
 window.deleteEditSession = deleteEditSession;
 window.navigateCalendar = navigateCalendar;
+window.openCalendarDay = openCalendarDay;
+window.closeCalendarDay = closeCalendarDay;
+window.openManualWorkoutSelect = openManualWorkoutSelect;
+window.openSessionEdit = openSessionEdit;
+window.closeSessionEdit = closeSessionEdit;
+window.saveSessionEdit = saveSessionEdit;
+window.deleteSession = deleteSession;
 
 window.exportData = exportData;
 window.importData = (event) => importData(event, () => renderPlan());
@@ -99,6 +106,7 @@ window.showWelcomeScreen = showWelcomeScreen;
 window.resumeSession = resumeSession;
 window.leaveSession = leaveSession;
 window.toggleReorderMode = toggleReorderMode;
+window.startManualEntry = startManualEntry;
 
 // Register service worker (skipped on localhost)
 if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
