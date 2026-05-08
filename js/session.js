@@ -2,6 +2,7 @@ import { state, saveData, saveCurrentSession } from './data.js';
 import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
 import { todayDateString, formatDate, showToast, showConfirm } from './utils.js';
 import { startRestTimer, stopRestTimer } from './restTimer.js';
+import { isHealthKitAvailable, getCachedWeight } from './healthkit.js';
 
 let _reorderMode = false;
 
@@ -69,8 +70,17 @@ export function getLastExerciseNote(exerciseId, last = getLastPerformance(exerci
 }
 
 function getLastBw() {
+  // Prefer the most recently logged manual bodyweight entry
   const last = state.history[state.history.length - 1];
-  return last?.bw || '';
+  if (last?.bw) return last.bw;
+
+  // Fallback: use weight pre-fetched from Apple Health at startup (iOS only)
+  if (isHealthKitAvailable()) {
+    const hw = getCachedWeight();
+    if (hw?.value) return Math.round(hw.value).toString();
+  }
+
+  return '';
 }
 
 export function startSession(dayId) {

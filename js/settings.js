@@ -2,6 +2,7 @@ import { state, saveData, openResetModal } from './data.js';
 import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.js';
 import { showToast, showConfirm } from './utils.js';
 import { getTimerSettings, setTimerEnabled, setTimerDuration, setTimerAlertEnabled, formatRestDuration } from './restTimer.js';
+import { isHealthKitAvailable, getHealthSettings, setHealthEnabled, setReadSteps, setReadWeight, requestHealthPermissions } from './healthkit.js';
 
 const MAX_CUSTOM_PROGRAMS = 5;
 
@@ -72,6 +73,57 @@ export function renderSettings() {
           </label>
         </div>
       </div>
+    </div>
+  `;
+
+  const health = getHealthSettings();
+  const healthAvailable = isHealthKitAvailable();
+  const healthStatusLabel = !healthAvailable
+    ? 'iOS only'
+    : health.permissionsGranted ? 'Connected' : 'Not connected';
+  const healthStatusColor = health.permissionsGranted ? 'var(--success)' : 'var(--text-dim)';
+
+  html += `
+    <div class="settings-section">
+      <div class="settings-section-title">Apple Health</div>
+      <div class="settings-row">
+        <span class="settings-row-label">Health Integration</span>
+        <label class="settings-toggle">
+          <input type="checkbox" ${health.enabled ? 'checked' : ''} ${!healthAvailable ? 'disabled' : ''}
+                 onchange="window.toggleHealthEnabled(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row-label">Status</span>
+        <div class="settings-row-right">
+          <span class="settings-row-value" style="color:${healthStatusColor};">${healthStatusLabel}</span>
+          ${healthAvailable && !health.permissionsGranted ? `
+            <button class="settings-edit-btn" onclick="window.connectHealth()">Connect</button>
+          ` : ''}
+        </div>
+      </div>
+      ${health.enabled && healthAvailable ? `
+        <div class="settings-row">
+          <span class="settings-row-label">Read Steps</span>
+          <label class="settings-toggle">
+            <input type="checkbox" ${health.readSteps ? 'checked' : ''}
+                   onchange="window.toggleHealthSteps(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <span class="settings-row-label">Read Bodyweight</span>
+          <label class="settings-toggle">
+            <input type="checkbox" ${health.readWeight ? 'checked' : ''}
+                   onchange="window.toggleHealthWeight(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      ` : ''}
+      ${!healthAvailable ? `
+        <div class="data-helper">Apple Health is only available in the Capacitor iOS app — not the web version.</div>
+      ` : ''}
     </div>
   `;
 
@@ -434,4 +486,29 @@ export function onRestDurationChange(val) {
 
 export function toggleRestAlert(enabled) {
   setTimerAlertEnabled(enabled);
+}
+
+// ── Apple Health handlers ──────────────────────────────────────────────────
+
+export async function connectHealth() {
+  const granted = await requestHealthPermissions();
+  if (granted) {
+    showToast('Apple Health connected ✓', 'success');
+  } else {
+    showToast('Health permission denied or unavailable');
+  }
+  renderSettings();
+}
+
+export function toggleHealthEnabled(enabled) {
+  setHealthEnabled(enabled);
+  renderSettings(); // re-render to show/hide sub-options
+}
+
+export function toggleHealthSteps(enabled) {
+  setReadSteps(enabled);
+}
+
+export function toggleHealthWeight(enabled) {
+  setReadWeight(enabled);
 }

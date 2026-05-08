@@ -4,8 +4,9 @@ import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistory
 import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
-import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert } from './settings.js';
+import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert, connectHealth, toggleHealthEnabled, toggleHealthSteps, toggleHealthWeight } from './settings.js';
 import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility } from './restTimer.js';
+import { initHealthKit } from './healthkit.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
 import { openExerciseSelector, closeExerciseSelector, exSelFilterMuscle, exSelSearch, exSelPickExercise, exSelShowCreate, exSelCancelCreate, exSelConfirmCreate } from './exerciseSelector.js';
 import { showProgramBuilder, closeProgramBuilder, pbUpdateName, pbSelectDayCount, pbToggleDay, pbSetDayName, pbAddExercise, pbEditExercise, pbRemoveExercise, pbSetRepType, pbSaveProgram, pbConfirmSetsReps, pbCancelSetsReps, pbIncrSets, pbDecrSets, pbIncrRepMin, pbDecrRepMin, pbIncrRepMax, pbDecrRepMax, pbIncrFixed, pbDecrFixed } from './programBuilder.js';
@@ -136,6 +137,10 @@ window.pbDecrFixed = pbDecrFixed;
 window.toggleRestTimer = toggleRestTimer;
 window.onRestDurationChange = onRestDurationChange;
 window.toggleRestAlert = toggleRestAlert;
+window.connectHealth = connectHealth;
+window.toggleHealthEnabled = toggleHealthEnabled;
+window.toggleHealthSteps = toggleHealthSteps;
+window.toggleHealthWeight = toggleHealthWeight;
 window.pauseTimer = pauseTimer;
 window.skipTimer = skipTimer;
 window.resetTimer = resetTimer;
@@ -163,6 +168,8 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost' && locatio
 
 loadData();
 initRestTimer();
+// Non-blocking HealthKit init — silent no-op on web, requests permissions on iOS
+initHealthKit().catch(() => {});
 
 if (state.currentSession) {
   // Go directly to session page — banner not shown while on session screen

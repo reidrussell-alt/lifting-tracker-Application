@@ -1,0 +1,10 @@
+{
+  "appId": "com.reidrussell.lifttracker",
+  "appName": "Lift Tracker",
+  "webDir": ".",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
