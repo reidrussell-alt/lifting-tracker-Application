@@ -1,6 +1,6 @@
 import { state, saveData, openResetModal } from './data.js';
 import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.js';
-import { showToast, showConfirm } from './utils.js';
+import { showToast, showConfirm, showPrompt } from './utils.js';
 import { getTimerSettings, setTimerEnabled, setTimerDuration, setTimerAlertEnabled, formatRestDuration } from './restTimer.js';
 import { isHealthKitAvailable, getHealthSettings, setHealthEnabled, setReadSteps, setReadWeight, requestHealthPermissions } from './healthkit.js';
 
@@ -249,15 +249,15 @@ function renderProgramsListHtml() {
 }
 
 export function editProfileName() {
-  const name = prompt('Enter your name:', state.profile?.name || '');
-  if (name === null) return;
-  const trimmed = name.trim();
-  if (!trimmed) { showToast('Name cannot be empty'); return; }
-  if (!state.profile) state.profile = { trainingMode: 'structured', createdAt: new Date().toISOString() };
-  state.profile.name = trimmed;
-  saveData();
-  renderSettings();
-  showToast('Name updated ✓', 'success');
+  showPrompt('Enter your name:', state.profile?.name || '', (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) { showToast('Name cannot be empty'); return; }
+    if (!state.profile) state.profile = { trainingMode: 'structured', createdAt: new Date().toISOString() };
+    state.profile.name = trimmed;
+    saveData();
+    renderSettings();
+    showToast('Name updated ✓', 'success');
+  });
 }
 
 export function switchTrainingMode() {
@@ -395,15 +395,15 @@ export function duplicateTemplate(templateId) {
 export function editProgram(programId) {
   const prog = state.programs.find(p => p.id === programId);
   if (!prog) return;
-  const name = prompt('Rename program:', prog.name);
-  if (name === null) return;
-  const trimmed = name.trim();
-  if (!trimmed) { showToast('Name cannot be empty'); return; }
-  prog.name = trimmed;
-  saveData();
-  refreshProgramsList();
-  window.renderPlan();
-  showToast('Program renamed ✓', 'success');
+  showPrompt('Rename program:', prog.name, (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) { showToast('Name cannot be empty'); return; }
+    prog.name = trimmed;
+    saveData();
+    refreshProgramsList();
+    window.renderPlan();
+    showToast('Program renamed ✓', 'success');
+  });
 }
 
 export function showCreateProgram() {

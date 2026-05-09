@@ -103,6 +103,17 @@
   </div>
 </div>
 
+<div class="modal-bg" id="promptModal">
+  <div class="modal">
+    <div class="modal-text" id="promptModalText"></div>
+    <input type="text" class="bw-input" id="promptModalInput" style="width:100%;margin:12px 0 4px;">
+    <div class="modal-actions">
+      <button class="modal-btn" id="promptModalCancel">Cancel</button>
+      <button class="modal-btn primary" id="promptModalOk">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Rest Timer Pill -->
@@ -115,10 +126,10 @@
   <div class="timer-main">
     <span id="timerDisplay" class="timer-display-text">2:00</span>
   </div>
-  <div id="timerControlsRow" class="timer-controls-row" onclick="event.stopPropagation()">
-    <button id="timerPauseBtn" class="timer-ctrl" onclick="window.pauseTimer()">⏸</button>
-    <button class="timer-ctrl" onclick="window.skipTimer()" title="Skip to ready">⏭</button>
-    <button class="timer-ctrl" onclick="window.resetTimer()" title="Reset">↺</button>
+  <div id="timerControlsRow" class="timer-controls-row">
+    <button id="timerPauseBtn" class="timer-ctrl" onclick="window.pauseTimer(); event.stopPropagation()">⏸</button>
+    <button class="timer-ctrl" onclick="window.skipTimer(); event.stopPropagation()" title="Skip to ready">⏭</button>
+    <button class="timer-ctrl" onclick="window.resetTimer(); event.stopPropagation()" title="Reset">↺</button>
   </div>
 </div>
 

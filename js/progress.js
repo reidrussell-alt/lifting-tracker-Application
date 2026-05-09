@@ -17,7 +17,9 @@ function _loadChartRanges() {
   try {
     const raw = localStorage.getItem(CHART_RANGES_KEY);
     if (raw) _chartRanges = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Failed to load chart ranges', e);
+  }
 }
 
 function _saveChartRanges() {

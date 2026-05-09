@@ -22,7 +22,10 @@ export function saveCurrentSession() {
     } else {
       localStorage.removeItem(SESSION_KEY);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Session save failed', e);
+    showToast('Could not save session — storage may be full');
+  }
 }
 
 export function saveData() {
@@ -132,7 +135,9 @@ export function loadData() {
   try {
     const sessRaw = localStorage.getItem(SESSION_KEY);
     if (sessRaw) state.currentSession = JSON.parse(sessRaw);
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Session restore failed', e);
+  }
 }
 
 export function exportData() {
@@ -143,7 +148,8 @@ export function exportData() {
     exportedAt: new Date().toISOString(),
     profile: state.profile,
     programs: state.programs,
-    history: state.history
+    history: state.history,
+    customExercises: state.customExercises
   };
   const json = JSON.stringify(exportObj, null, 2);
   const blob = new Blob([json], { type: 'application/json' });

@@ -49,3 +49,28 @@ export function showConfirm(message, onConfirm, confirmLabel = 'Confirm') {
   okBtn.addEventListener('click', handleOk, { once: true });
   cancelBtn.addEventListener('click', close, { once: true });
 }
+
+export function showPrompt(message, defaultValue, onConfirm, confirmLabel = 'Save') {
+  const modal = document.getElementById('promptModal');
+  const textEl = document.getElementById('promptModalText');
+  const input = document.getElementById('promptModalInput');
+  const okBtn = document.getElementById('promptModalOk');
+  const cancelBtn = document.getElementById('promptModalCancel');
+
+  textEl.textContent = message;
+  input.value = defaultValue || '';
+  okBtn.textContent = confirmLabel;
+  modal.classList.add('active');
+  setTimeout(() => { input.focus(); input.select(); }, 50);
+
+  const close = () => {
+    modal.classList.remove('active');
+    input.removeEventListener('keydown', handleKey);
+  };
+  const handleOk = () => { close(); onConfirm(input.value); };
+  const handleKey = (e) => { if (e.key === 'Enter') handleOk(); };
+
+  input.addEventListener('keydown', handleKey);
+  okBtn.addEventListener('click', handleOk, { once: true });
+  cancelBtn.addEventListener('click', close, { once: true });
+}

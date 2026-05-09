@@ -1,8 +1,8 @@
 import { state, saveData, saveCurrentSession } from './data.js';
-import { EXERCISE_LIBRARY } from './exerciseLibrary.js';
 import { todayDateString, formatDate, showToast, showConfirm } from './utils.js';
 import { startRestTimer, stopRestTimer } from './restTimer.js';
 import { isHealthKitAvailable, getCachedWeight } from './healthkit.js';
+import { openExerciseSelector } from './exerciseSelector.js';
 
 let _reorderMode = false;
 
@@ -103,21 +103,19 @@ export function startSession(dayId) {
   _doStartSession(dayId);
 }
 
-function _doStartSession(dayId) {
+function _buildStructuredSession(dayId, date) {
   const activeProgram = state.programs.find(p => p.isActive);
-  if (!activeProgram) { window.switchTab('plan'); return; }
-
+  if (!activeProgram) { window.switchTab('plan'); return null; }
   const day = activeProgram.days.find(d => d.id === dayId);
-  if (!day) return;
-
-  state.currentSession = {
+  if (!day) return null;
+  return {
     programId: activeProgram.id,
     programName: activeProgram.name,
     dayId,
     dayTitle: day.name,
     tag: day.type || 'LIFT',
     bw: getLastBw(),
-    date: todayDateString(),
+    date,
     startedAt: new Date().toISOString(),
     isTrackAsYouGo: false,
     exercises: day.exercises.map(ex => ({
@@ -130,7 +128,28 @@ function _doStartSession(dayId) {
       sets: Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
     }))
   };
+}
 
+function _buildTrackAsYouGoSession(date) {
+  const d = new Date(date + 'T12:00:00');
+  return {
+    programId: null,
+    programName: 'Track As You Go',
+    dayId: `workout_${Date.now()}`,
+    dayTitle: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+    tag: 'TRACK',
+    bw: getLastBw(),
+    date,
+    startedAt: new Date().toISOString(),
+    isTrackAsYouGo: true,
+    exercises: []
+  };
+}
+
+function _doStartSession(dayId) {
+  const session = _buildStructuredSession(dayId, todayDateString());
+  if (!session) return;
+  state.currentSession = session;
   saveCurrentSession();
   window.switchTab('session');
 }
@@ -148,20 +167,7 @@ export function startTrackAsYouGoWorkout() {
 }
 
 function _doStartTrackAsYouGo() {
-  const today = new Date();
-  state.currentSession = {
-    programId: null,
-    programName: 'Track As You Go',
-    dayId: `workout_${Date.now()}`,
-    dayTitle: today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-    tag: 'TRACK',
-    bw: getLastBw(),
-    date: todayDateString(),
-    startedAt: today.toISOString(),
-    isTrackAsYouGo: true,
-    exercises: []
-  };
-
+  state.currentSession = _buildTrackAsYouGoSession(todayDateString());
   saveCurrentSession();
   window.switchTab('session');
 }
@@ -185,50 +191,11 @@ export function startManualEntry(dayId, dateKey) {
 }
 
 function _doStartManualEntry(dayId, dateKey) {
-  if (!dayId) {
-    // Track As You Go with preset date
-    const d = new Date(dateKey + 'T12:00:00');
-    state.currentSession = {
-      programId: null,
-      programName: 'Track As You Go',
-      dayId: `workout_${Date.now()}`,
-      dayTitle: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
-      tag: 'TRACK',
-      bw: getLastBw(),
-      date: dateKey,
-      startedAt: new Date().toISOString(),
-      isTrackAsYouGo: true,
-      exercises: []
-    };
-  } else {
-    // Structured workout with preset date
-    const activeProgram = state.programs.find(p => p.isActive);
-    if (!activeProgram) { window.switchTab('plan'); return; }
-    const day = activeProgram.days.find(d => d.id === dayId);
-    if (!day) return;
-
-    state.currentSession = {
-      programId: activeProgram.id,
-      programName: activeProgram.name,
-      dayId,
-      dayTitle: day.name,
-      tag: day.type || 'LIFT',
-      bw: getLastBw(),
-      date: dateKey,
-      startedAt: new Date().toISOString(),
-      isTrackAsYouGo: false,
-      exercises: day.exercises.map(ex => ({
-        id: ex.id,
-        name: ex.name,
-        loadType: ex.loadType,
-        repRange: ex.repRange || '',
-        targetSets: ex.sets,
-        note: '',
-        sets: Array.from({ length: ex.sets }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
-      }))
-    };
-  }
-
+  const session = dayId
+    ? _buildStructuredSession(dayId, dateKey)
+    : _buildTrackAsYouGoSession(dateKey);
+  if (!session) return;
+  state.currentSession = session;
   saveCurrentSession();
   window.switchTab('session');
 }
@@ -521,83 +488,19 @@ export function removeExercise(exIdx) {
 }
 
 export function showExercisePicker() {
-  const grouped = {};
-  EXERCISE_LIBRARY.forEach(ex => {
-    if (!grouped[ex.muscleGroup]) grouped[ex.muscleGroup] = [];
-    grouped[ex.muscleGroup].push(ex);
+  openExerciseSelector(ex => {
+    state.currentSession.exercises.push({
+      id: ex.id,
+      name: ex.name,
+      loadType: ex.loadType,
+      repRange: '',
+      targetSets: 3,
+      note: '',
+      sets: Array.from({ length: 3 }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
+    });
+    saveCurrentSession();
+    renderSession();
   });
-
-  const groupOrder = ['chest','back','shoulders','biceps','triceps','quads','hamstrings','glutes','calves','abs'];
-  const groupLabels = {
-    chest:'Chest', back:'Back', shoulders:'Shoulders', biceps:'Biceps',
-    triceps:'Triceps', quads:'Quads', hamstrings:'Hamstrings',
-    glutes:'Glutes', calves:'Calves', abs:'Core / Abs'
-  };
-
-  let listHtml = '';
-  groupOrder.forEach(mg => {
-    const exs = grouped[mg];
-    if (!exs || !exs.length) return;
-    listHtml += `
-      <div class="picker-group">
-        <div class="picker-group-label">${groupLabels[mg] || mg}</div>
-        ${exs.map(ex => `
-          <button class="picker-ex-btn" data-name="${ex.name.toLowerCase()}" data-group="${mg}"
-                  onclick="addExerciseToSession('${ex.id}')">
-            <span>${ex.name}</span>
-            <span class="picker-load-tag ${ex.loadType === 'bw' ? 'bw' : 'wt'}">${ex.loadType === 'bw' ? 'BW' : 'WT'}</span>
-          </button>
-        `).join('')}
-      </div>
-    `;
-  });
-
-  const modal = document.createElement('div');
-  modal.className = 'modal-bg active';
-  modal.id = 'exercisePickerModal';
-  modal.innerHTML = `
-    <div class="modal" style="max-width:480px;max-height:80vh;overflow-y:auto;text-align:left;" onclick="event.stopPropagation()">
-      <div class="modal-title" style="text-align:left;margin-bottom:12px;">Add Exercise</div>
-      <input type="text" id="exSearchInput" class="bw-input" style="width:100%;margin-bottom:16px;"
-             placeholder="Search exercises…" oninput="filterExercisePicker(this.value)">
-      <div id="pickerList">${listHtml}</div>
-    </div>
-  `;
-  modal.addEventListener('click', closeExercisePicker);
-  document.body.appendChild(modal);
-  document.getElementById('exSearchInput')?.focus();
-}
-
-export function filterExercisePicker(query) {
-  const q = query.toLowerCase();
-  document.querySelectorAll('.picker-ex-btn').forEach(btn => {
-    btn.style.display = btn.dataset.name.includes(q) ? '' : 'none';
-  });
-  document.querySelectorAll('.picker-group').forEach(group => {
-    const visible = [...group.querySelectorAll('.picker-ex-btn')].some(b => b.style.display !== 'none');
-    group.style.display = visible ? '' : 'none';
-  });
-}
-
-export function closeExercisePicker() {
-  document.getElementById('exercisePickerModal')?.remove();
-}
-
-export function addExerciseToSession(exerciseId) {
-  const ex = EXERCISE_LIBRARY.find(e => e.id === exerciseId);
-  if (!ex) return;
-  state.currentSession.exercises.push({
-    id: ex.id,
-    name: ex.name,
-    loadType: ex.loadType,
-    repRange: '',
-    targetSets: 3,
-    note: '',
-    sets: Array.from({ length: 3 }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
-  });
-  closeExercisePicker();
-  saveCurrentSession();
-  renderSession();
 }
 
 export function abandonSession() {

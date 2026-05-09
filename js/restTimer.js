@@ -72,6 +72,8 @@ export function startRestTimer(exIdx, setIdx) {
 
   const pill = document.getElementById('restTimerPill');
   if (pill) pill.classList.remove('expanded');
+  const controls = document.getElementById('timerControlsRow');
+  if (controls) controls.classList.remove('visible');
 
   _updateDisplay();
   updatePillVisibility();

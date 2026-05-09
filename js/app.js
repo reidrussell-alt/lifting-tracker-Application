@@ -1,7 +1,7 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
 import { showWelcomeScreen } from './welcome.js';
 import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, deleteSession } from './progress.js';
-import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, closeExercisePicker, addExerciseToSession, filterExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
+import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert, connectHealth, toggleHealthEnabled, toggleHealthSteps, toggleHealthWeight } from './settings.js';
@@ -63,9 +63,6 @@ window.addSet = addSet;
 window.removeExercise = removeExercise;
 window.updateExerciseNote = updateExerciseNote;
 window.showExercisePicker = showExercisePicker;
-window.closeExercisePicker = closeExercisePicker;
-window.addExerciseToSession = addExerciseToSession;
-window.filterExercisePicker = filterExercisePicker;
 
 window.renderProgress = renderProgress;
 window.updateMuscleGroupExercise = updateMuscleGroupExercise;
