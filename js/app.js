@@ -1,6 +1,6 @@
 import { loadData, exportData, importData, confirmReset, openResetModal, closeResetModal } from './data.js';
 import { showWelcomeScreen } from './welcome.js';
-import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, deleteSession } from './progress.js';
+import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, seDeleteExercise, seDeleteSet, deleteSession } from './progress.js';
 import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderPlan } from './plan.js';
@@ -79,6 +79,8 @@ window.openManualWorkoutSelect = openManualWorkoutSelect;
 window.openSessionEdit = openSessionEdit;
 window.closeSessionEdit = closeSessionEdit;
 window.saveSessionEdit = saveSessionEdit;
+window.seDeleteExercise = seDeleteExercise;
+window.seDeleteSet = seDeleteSet;
 window.deleteSession = deleteSession;
 
 window.exportData = exportData;

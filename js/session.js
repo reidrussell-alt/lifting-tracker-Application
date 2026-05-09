@@ -280,9 +280,7 @@ export function renderSession() {
               <span>${ex.name}</span>
               <div style="display:flex;gap:6px;align-items:center;">
                 <span class="target-pill">${pillLabel}</span>
-                ${sess.isTrackAsYouGo ? `
-                  <button onclick="removeExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;" title="Remove exercise">×</button>
-                ` : ''}
+                <button onclick="removeExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;" title="Remove exercise">×</button>
               </div>
             </div>
             ${suggestion ? `
@@ -475,16 +473,15 @@ export function addSet(exIdx) {
 }
 
 export function removeExercise(exIdx) {
-  const doRemove = () => {
+  const ex = state.currentSession.exercises[exIdx];
+  const msg = state.currentSession.exercises.length <= 1
+    ? `Remove "${ex.name}"? This is the only exercise in this session.`
+    : `Remove "${ex.name}" from this session?`;
+  showConfirm(msg, () => {
     state.currentSession.exercises.splice(exIdx, 1);
     saveCurrentSession();
     renderSession();
-  };
-  if (state.currentSession.exercises.length <= 1) {
-    showConfirm('Remove the only exercise in this session?', doRemove, 'Remove');
-  } else {
-    doRemove();
-  }
+  }, 'Remove');
 }
 
 export function showExercisePicker() {

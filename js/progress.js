@@ -13,6 +13,10 @@ const RANGE_OPTIONS = [10, 20, 30, 'all'];
 let _exerciseDataCache = {};
 let _chartRanges = {};
 
+// Draft state for session edit modal
+let _seDraft = null;
+let _seIdx = null;
+
 function _loadChartRanges() {
   try {
     const raw = localStorage.getItem(CHART_RANGES_KEY);
@@ -657,26 +661,28 @@ export function openManualWorkoutSelect(dateKey) {
   document.getElementById('calendarDayBody').innerHTML = html;
 }
 
-export function openSessionEdit(sessionIdx) {
-  const session = state.history[sessionIdx];
-  if (!session) return;
-  const dateStr = isoDateOnly(session.date);
-
+function _renderSessionEditBody() {
   let html = `
     <div class="modal-title" style="text-align:left;">Edit Workout</div>
     <div class="edit-section">
       <div class="edit-label">Date</div>
-      <input type="date" id="seDate" class="edit-date-input" value="${dateStr}" max="${todayDateString()}">
+      <input type="date" id="seDate" class="edit-date-input" value="${isoDateOnly(_seDraft.date)}" max="${todayDateString()}">
       <div class="edit-helper">Changing the date moves this workout on the calendar.</div>
     </div>
     <div class="edit-section">
       <div class="edit-label">Bodyweight (lb)</div>
-      <input type="number" inputmode="decimal" id="seBw" class="edit-date-input" value="${session.bw || ''}" placeholder="—">
+      <input type="number" inputmode="decimal" id="seBw" class="edit-date-input" value="${_seDraft.bw || ''}" placeholder="—">
     </div>
   `;
 
-  session.exercises.forEach((ex, exIdx) => {
-    html += `<div class="edit-label" style="margin-bottom:8px;">${ex.name}</div>`;
+  _seDraft.exercises.forEach((ex, exIdx) => {
+    html += `
+      <div class="edit-section" style="padding-bottom:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="edit-label" style="margin-bottom:0;">${ex.name}</div>
+          <button onclick="seDeleteExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;" title="Remove exercise">×</button>
+        </div>
+    `;
     ex.sets.forEach((set, setIdx) => {
       html += `
         <div class="edit-set-row">
@@ -693,35 +699,18 @@ export function openSessionEdit(sessionIdx) {
                      data-ex="${exIdx}" data-set="${setIdx}" value="${set.reps}" placeholder="reps">
             `}
           </div>
+          <button onclick="seDeleteSet(${exIdx}, ${setIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;flex-shrink:0;" title="Remove set">×</button>
         </div>
       `;
     });
+    html += `</div>`;
   });
 
-  const modal = document.getElementById('sessionEditModal');
-  modal.dataset.sessionIdx = sessionIdx;
   document.getElementById('sessionEditBody').innerHTML = html;
-  modal.classList.add('active');
 }
 
-export function closeSessionEdit() {
-  document.getElementById('sessionEditModal').classList.remove('active');
-}
-
-export function saveSessionEdit() {
-  const modal = document.getElementById('sessionEditModal');
-  const sessionIdx = parseInt(modal.dataset.sessionIdx);
-  const session = state.history[sessionIdx];
-  if (!session) return;
-
-  const newDate = document.getElementById('seDate').value;
-  if (newDate) {
-    if (newDate > todayDateString()) { showToast('Date cannot be in the future'); return; }
-    session.date = new Date(newDate + 'T12:00:00').toISOString();
-  }
-  session.bw = document.getElementById('seBw').value || '';
-
-  session.exercises.forEach((ex, exIdx) => {
+function _flushDraftInputs() {
+  _seDraft.exercises.forEach((ex, exIdx) => {
     ex.sets.forEach((set, setIdx) => {
       const wEl = document.querySelector(`.se-weight[data-ex="${exIdx}"][data-set="${setIdx}"]`);
       const rEl = document.querySelector(`.se-reps[data-ex="${exIdx}"][data-set="${setIdx}"]`);
@@ -729,6 +718,65 @@ export function saveSessionEdit() {
       if (rEl) set.reps = rEl.value;
     });
   });
+  const dateEl = document.getElementById('seDate');
+  const bwEl = document.getElementById('seBw');
+  if (dateEl) _seDraft._pendingDate = dateEl.value;
+  if (bwEl) _seDraft.bw = bwEl.value || '';
+}
+
+export function openSessionEdit(sessionIdx) {
+  const session = state.history[sessionIdx];
+  if (!session) return;
+  _seIdx = sessionIdx;
+  _seDraft = JSON.parse(JSON.stringify(session));
+  _seDraft._pendingDate = isoDateOnly(session.date);
+
+  const modal = document.getElementById('sessionEditModal');
+  _renderSessionEditBody();
+  modal.classList.add('active');
+}
+
+export function closeSessionEdit() {
+  _seDraft = null;
+  _seIdx = null;
+  document.getElementById('sessionEditModal').classList.remove('active');
+}
+
+export function seDeleteExercise(exIdx) {
+  _flushDraftInputs();
+  const ex = _seDraft.exercises[exIdx];
+  showConfirm(`Remove "${ex.name}" from this workout?`, () => {
+    _seDraft.exercises.splice(exIdx, 1);
+    _renderSessionEditBody();
+  }, 'Remove');
+}
+
+export function seDeleteSet(exIdx, setIdx) {
+  _flushDraftInputs();
+  const ex = _seDraft.exercises[exIdx];
+  if (ex.sets.length <= 1) {
+    showConfirm(`Remove the only set of "${ex.name}"? This will remove the exercise entirely.`, () => {
+      _seDraft.exercises.splice(exIdx, 1);
+      _renderSessionEditBody();
+    }, 'Remove');
+    return;
+  }
+  ex.sets.splice(setIdx, 1);
+  _renderSessionEditBody();
+}
+
+export function saveSessionEdit() {
+  if (!_seDraft || _seIdx === null) return;
+  _flushDraftInputs();
+
+  const newDate = _seDraft._pendingDate;
+  if (newDate) {
+    if (newDate > todayDateString()) { showToast('Date cannot be in the future'); return; }
+    _seDraft.date = new Date(newDate + 'T12:00:00').toISOString();
+  }
+  delete _seDraft._pendingDate;
+
+  Object.assign(state.history[_seIdx], _seDraft);
 
   // Keep history in chronological order after a potential date change
   state.history.sort((a, b) => new Date(a.date) - new Date(b.date));
