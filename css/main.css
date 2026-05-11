@@ -31,23 +31,18 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-body { padding-bottom: 60px; }
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 0;
+}
 
 .tab-nav {
-  position: sticky; top: 0; z-index: 20;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
   background: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 16px 12px;
+  border-top: 1px solid var(--border);
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px);
 }
-
-.app-title {
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 22px; letter-spacing: -1px;
-  margin-bottom: 14px;
-}
-
-.app-title span { color: var(--accent); }
 
 .tabs {
   display: flex; gap: 6px;
@@ -70,8 +65,13 @@ body { padding-bottom: 60px; }
 
 .tab.active { background: var(--accent); color: var(--bg); }
 
-.page { display: none; padding: 16px; }
-.page.active { display: block; }
+.page { display: none; padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 76px); }
+.page.active { display: block; animation: fadeInPage 150ms ease; }
+
+@keyframes fadeInPage {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 .day-card {
   background: var(--surface);
@@ -80,6 +80,8 @@ body { padding-bottom: 60px; }
   overflow: hidden;
   margin-bottom: 12px;
 }
+
+.day-card:active { background: var(--surface-2); }
 
 .day-header {
   padding: 18px 20px;
@@ -170,7 +172,7 @@ body { padding-bottom: 60px; }
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border-radius: 10px; cursor: pointer;
   font-size: 18px; flex-shrink: 0;
 }
@@ -207,6 +209,7 @@ body { padding-bottom: 60px; }
 }
 
 .exercise-block.complete { border-color: rgba(74, 222, 128, 0.3); }
+.exercise-header:active { background: var(--surface-2); }
 
 .exercise-header { padding: 16px 18px; border-bottom: 1px solid var(--border); }
 
@@ -245,19 +248,19 @@ body { padding-bottom: 60px; }
 
 .set-row {
   display: grid;
-  grid-template-columns: 36px 1fr 1fr 36px 36px;
+  grid-template-columns: 44px 1fr 1fr 44px 44px;
   gap: 8px; align-items: center;
   margin-bottom: 8px;
 }
 
 .set-row.bw-row {
-  grid-template-columns: 36px 1fr 36px 36px;
+  grid-template-columns: 44px 1fr 44px 44px;
 }
 
 .set-num {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px; color: var(--text-dim);
-  font-weight: 700; height: 36px;
+  font-weight: 700; height: 44px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -305,12 +308,12 @@ body { padding-bottom: 60px; }
   position: absolute; top: -7px; left: 8px;
   background: var(--surface); padding: 0 4px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px; color: var(--text-dimmer);
+  font-size: 10px; color: var(--text-dimmer);
   letter-spacing: 1px; text-transform: uppercase;
 }
 
 .icon-btn {
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -381,6 +384,8 @@ body { padding-bottom: 60px; }
   margin-top: 8px;
 }
 
+.finish-btn:active { transform: scale(0.97); opacity: 0.88; }
+
 .progress-summary, .day-freq-card, .chart-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -406,7 +411,7 @@ body { padding-bottom: 60px; }
 
 .stat-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; color: var(--text-dim);
+  font-size: 10px; color: var(--text-dim);
   letter-spacing: 1.5px; text-transform: uppercase;
   margin-bottom: 6px;
 }
@@ -478,7 +483,7 @@ body { padding-bottom: 60px; }
 }
 
 .chart-canvas-wrap {
-  position: relative; height: 200px; width: 100%;
+  position: relative; height: 240px; width: 100%;
 }
 
 .chart-empty {
@@ -513,6 +518,8 @@ body { padding-bottom: 60px; }
   padding: 14px 16px; cursor: pointer;
   display: flex; justify-content: space-between; align-items: center;
 }
+
+.exercise-history-header:active { background: var(--surface-2); }
 
 .ex-history-name {
   font-size: 14px; font-weight: 700;
@@ -762,7 +769,7 @@ body { padding-bottom: 60px; }
 .file-input-hidden { display: none; }
 
 .toast {
-  position: fixed; top: 20px; left: 50%;
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + 20px); left: 50%;
   transform: translateX(-50%) translateY(-100px);
   background: var(--surface);
   border: 1px solid var(--border-bright);
@@ -835,7 +842,7 @@ body { padding-bottom: 60px; }
 
 .cal-nav-btn {
   background: var(--surface-2); border: 1px solid var(--border);
-  color: var(--text); width: 32px; height: 32px;
+  color: var(--text); width: 44px; height: 44px;
   border-radius: 8px; cursor: pointer; font-size: 16px;
   display: flex; align-items: center; justify-content: center;
 }
@@ -866,7 +873,7 @@ body { padding-bottom: 60px; }
 
 .cal-dow {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; color: var(--text-dimmer);
+  font-size: 10px; color: var(--text-dimmer);
   letter-spacing: 0.5px; text-transform: uppercase;
   text-align: center; padding: 2px 0 8px;
 }
@@ -1031,6 +1038,22 @@ body { padding-bottom: 60px; }
   text-transform: uppercase;
 }
 
+.welcome-progress {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--accent);
+  opacity: 0.45;
+  transform-origin: left center;
+  animation: welcomeProgress 2.5s linear forwards;
+}
+
+@keyframes welcomeProgress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
 .welcome-hint {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 20px) + 28px);
@@ -1102,7 +1125,7 @@ body { padding-bottom: 60px; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; font-weight: 700;
   letter-spacing: 1px; text-transform: uppercase;
-  padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  padding: 8px 12px; border-radius: 6px; cursor: pointer;
 }
 .settings-empty-msg {
   font-size: 13px; color: var(--text-dim);
@@ -1138,7 +1161,7 @@ body { padding-bottom: 60px; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; font-weight: 700;
   letter-spacing: 1px; text-transform: uppercase;
-  padding: 6px 10px; border-radius: 7px; cursor: pointer;
+  padding: 9px 12px; border-radius: 7px; cursor: pointer;
 }
 .prog-btn.accent { color: var(--accent-dim); border-color: rgba(168,200,42,0.3); }
 .prog-btn.danger { color: var(--push); border-color: rgba(255,107,53,0.3); }
@@ -1351,7 +1374,7 @@ body { padding-bottom: 60px; }
 .picker-group { margin-bottom: 12px; }
 .picker-group-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: var(--text-dimmer); letter-spacing: 2px;
   text-transform: uppercase; margin-bottom: 6px;
 }
@@ -1522,22 +1545,18 @@ body { padding-bottom: 60px; }
   border: 1px solid var(--border-bright);
   color: var(--text-dim);
   border-radius: 8px;
-  padding: 6px 11px;
-  font-size: 17px;
+  padding: 7px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .reorder-toggle-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--bg);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 7px 14px;
 }
 
 .exercise-reorder-card {
@@ -1639,7 +1658,7 @@ body { padding-bottom: 60px; }
 /* ─── Rest Timer Pill ─── */
 .rest-timer-pill {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
   right: 16px;
   width: 72px;
   height: 72px;

@@ -15,7 +15,6 @@
 <body>
 
 <div class="tab-nav">
-  <div class="app-title">Lift <span>Tracker</span></div>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('plan')">Plan</button>
     <button class="tab" onclick="switchTab('progress')">Progress</button>
@@ -39,7 +38,7 @@
 <div id="progressPage" class="page"></div>
 <div id="settingsPage" class="page"></div>
 
-<div class="modal-bg" id="finishModal">
+<div class="modal-bg" id="finishModal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-icon">💪</div>
     <div class="modal-title">Finish Session?</div>
@@ -63,7 +62,7 @@
   </div>
 </div>
 
-<div class="modal-bg" id="editModal">
+<div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEditModal()">
   <div class="modal" style="max-width: 440px; text-align: left; max-height: 88vh; overflow-y: auto;">
     <div class="modal-title" style="text-align: left;">Edit Workout</div>
     <div id="editModalBody"></div>
@@ -83,7 +82,7 @@
 </div>
 
 <!-- Session Full Edit Modal -->
-<div class="modal-bg" id="sessionEditModal">
+<div class="modal-bg" id="sessionEditModal" onclick="if(event.target===this)closeSessionEdit()">
   <div class="modal" style="max-width:480px;text-align:left;max-height:90vh;overflow-y:auto;">
     <div id="sessionEditBody"></div>
     <div class="modal-actions" style="margin-top:20px;">

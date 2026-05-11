@@ -32,6 +32,7 @@ export function showWelcomeScreen() {
   const name = state.profile?.name || '';
 
   el.innerHTML = `
+    <div class="welcome-progress"></div>
     <div class="welcome-inner">
       <div class="welcome-logo-wrap">
         <div class="welcome-logo">
@@ -76,9 +77,11 @@ export function showWelcomeScreen() {
   const dismiss = () => {
     if (dismissed) return;
     dismissed = true;
+    clearTimeout(autoDismiss);
     el.classList.add('fading');
     el.addEventListener('transitionend', () => el.remove(), { once: true });
   };
 
+  const autoDismiss = setTimeout(dismiss, 2500);
   el.addEventListener('click', dismiss, { once: true });
 }
