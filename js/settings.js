@@ -6,6 +6,52 @@ import { isHealthKitAvailable, getHealthSettings, setHealthEnabled, setReadSteps
 
 const MAX_CUSTOM_PROGRAMS = 5;
 
+function buildProfileStatsCard(profile) {
+  const history = state.history || [];
+  const totalSessions = history.length;
+
+  const createdAt = profile.createdAt ? new Date(profile.createdAt) : null;
+  const weeksActive = createdAt
+    ? Math.max(1, Math.ceil((new Date() - createdAt) / (7 * 24 * 60 * 60 * 1000)))
+    : '—';
+
+  const memberSince = createdAt
+    ? createdAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : '—';
+
+  // Most frequently logged workout day title
+  const titleCounts = {};
+  for (const s of history) {
+    const key = s.dayTitle || 'Workout';
+    titleCounts[key] = (titleCounts[key] || 0) + 1;
+  }
+  const favDay = Object.keys(titleCounts).sort((a, b) => titleCounts[b] - titleCounts[a])[0];
+  const favLabel = favDay ? favDay.split(' - ')[0] : '—';
+
+  return `
+    <div class="profile-stats-card">
+      <div class="profile-stats-header">
+        <div class="profile-stats-name">${profile.name}</div>
+        <div class="profile-stats-since">Member since ${memberSince}</div>
+      </div>
+      <div class="profile-stats-grid">
+        <div class="profile-stat">
+          <div class="profile-stat-value">${totalSessions}</div>
+          <div class="profile-stat-label">Sessions</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-value">${weeksActive}</div>
+          <div class="profile-stat-label">Weeks Active</div>
+        </div>
+        <div class="profile-stat profile-stat--wide">
+          <div class="profile-stat-value profile-stat-value--sm">${favLabel}</div>
+          <div class="profile-stat-label">Fav. Workout</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export function renderSettings() {
   const el = document.getElementById('settingsPage');
   if (!el) return;
@@ -13,7 +59,7 @@ export function renderSettings() {
   const profile = state.profile || { name: '—', trainingMode: 'structured' };
   const isStructured = profile.trainingMode === 'structured';
 
-  let html = `
+  let html = buildProfileStatsCard(profile) + `
     <div class="settings-section">
       <div class="settings-section-title">Profile</div>
       <div class="settings-row">
@@ -32,15 +78,6 @@ export function renderSettings() {
       </div>
     </div>
   `;
-
-  if (isStructured) {
-    html += `
-      <div class="settings-section">
-        <div class="settings-section-title">Programs</div>
-        <div id="programsList">${renderProgramsListHtml()}</div>
-      </div>
-    `;
-  }
 
   const timer = getTimerSettings();
   html += `
@@ -268,7 +305,7 @@ export function switchTrainingMode() {
     state.profile.trainingMode = next;
     saveData();
     renderSettings();
-    window.renderPlan();
+    window.renderMyPlans();
     showToast(`Switched to ${label}`, 'success');
   }, 'Switch');
 }
@@ -286,7 +323,7 @@ export function setActiveProgram(programId) {
     prog.isActive = true;
     saveData();
     refreshProgramsList();
-    window.renderPlan();
+    window.renderMyPlans();
     showToast(`Activated: ${prog.name}`, 'success');
   }, 'Activate');
 }
@@ -304,7 +341,7 @@ export function deleteProgram(programId) {
       state.programs = state.programs.filter(p => p.id !== programId);
       saveData();
       refreshProgramsList();
-      window.renderPlan();
+      window.renderMyPlans();
       showToast(`Deleted: ${prog.name}`);
     },
     'Delete'
@@ -363,7 +400,7 @@ export function activateTemplate(templateId) {
     }
     saveData();
     refreshProgramsList();
-    window.renderPlan();
+    window.renderMyPlans();
     showToast(`Activated: ${template.name}`, 'success');
   }, 'Activate');
 }
@@ -401,7 +438,7 @@ export function editProgram(programId) {
     prog.name = trimmed;
     saveData();
     refreshProgramsList();
-    window.renderPlan();
+    window.renderMyPlans();
     showToast('Program renamed ✓', 'success');
   });
 }
@@ -462,13 +499,11 @@ export function confirmCreateProgram() {
   saveData();
   closeCreateProgram();
   refreshProgramsList();
-  window.renderPlan();
   showToast(`Created: ${name}`, 'success');
 }
 
 function refreshProgramsList() {
-  const el = document.getElementById('programsList');
-  if (el) el.innerHTML = renderProgramsListHtml();
+  if (window.renderMyPlans) window.renderMyPlans();
 }
 
 export function toggleRestTimer(enabled) {

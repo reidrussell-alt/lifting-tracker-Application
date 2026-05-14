@@ -253,6 +253,48 @@ Loaded from Google Fonts:
 
 ---
 
+## Documentation Guidelines
+
+### Business Analyst Lens for Design Docs
+
+When updating the high-level design document or CHANGELOG.md, ALWAYS use a business analyst lens:
+
+**DO:**
+- Focus on user benefits and outcomes
+- Describe what users can do, not how it's coded
+- Use plain English a non-developer can understand
+- Structure: What It Does → User Experience → Business Value → Key Features
+- Emphasize user workflows and journeys
+
+**DON'T:**
+- Include code snippets or function signatures
+- Discuss implementation details or architecture
+- Use technical jargon (API, schema, state management, etc.)
+- Mention file structures or module dependencies
+
+**Example Structure:**
+
+```markdown
+## [Feature Name]
+
+### What It Does
+[One-sentence plain-English description]
+
+### User Experience
+[Step-by-step what the user does and sees]
+
+### Business Value
+[Why this matters - motivation, convenience, insights, etc.]
+
+### Key Features
+[Bullet list of user-facing capabilities]
+```
+
+This lens helps stakeholders, product managers, and future team members
+understand the app without needing to read code.
+
+---
+
 ## Known constraints
 
 - **Preview tool can't serve this project** — the Claude Code preview sandbox lacks filesystem access to `~/Documents`. Always test at `localhost:8082` using the user's own Python server.

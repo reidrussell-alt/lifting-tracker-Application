@@ -151,15 +151,5 @@ function renderStructuredPlan(el, prog) {
     `;
   });
 
-  html += `
-    <div class="rules-card">
-      <div class="rules-card-title">Core Rules</div>
-      <div class="rule"><span class="rule-num">01</span><span><strong>Last set to failure.</strong> Earlier sets stop 1-2 reps short.</span></div>
-      <div class="rule"><span class="rule-num">02</span><span><strong>Hit top of rep range</strong> on all sets → add weight next session.</span></div>
-      <div class="rule"><span class="rule-num">03</span><span><strong>48+ hours</strong> between same-pattern days.</span></div>
-      <div class="rule"><span class="rule-num">04</span><span><strong>Compounds = tension,</strong> isolations = burn. Don't chase burn on squats.</span></div>
-    </div>
-  `;
-
   el.innerHTML = html;
 }

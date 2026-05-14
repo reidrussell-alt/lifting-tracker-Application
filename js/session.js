@@ -105,7 +105,7 @@ export function startSession(dayId) {
 
 function _buildStructuredSession(dayId, date) {
   const activeProgram = state.programs.find(p => p.isActive);
-  if (!activeProgram) { window.switchTab('plan'); return null; }
+  if (!activeProgram) { window.switchTab('myPlans'); return null; }
   const day = activeProgram.days.find(d => d.id === dayId);
   if (!day) return null;
   return {
@@ -175,7 +175,7 @@ function _doStartTrackAsYouGo() {
 export function leaveSession() {
   _reorderMode = false;
   stopRestTimer();
-  window.switchTab('plan');
+  window.switchTab('home');
 }
 
 export function startManualEntry(dayId, dateKey) {
@@ -505,7 +505,7 @@ export function abandonSession() {
     stopRestTimer();
     state.currentSession = null;
     saveCurrentSession();
-    window.switchTab('plan');
+    window.switchTab('home');
   }, 'Discard');
 }
 

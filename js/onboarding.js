@@ -177,7 +177,7 @@ export function obFinish(mode, template) {
   state.history = [];
   saveData();
   hideOnboarding();
-  window.renderPlan();
+  window.switchTab('home');
   window.showWelcomeScreen();
 }
 
@@ -206,7 +206,7 @@ export function obProcessImport() {
 
       showToast(`Imported ${data.history.length} sessions ✓`, 'success');
       hideOnboarding();
-      window.renderPlan();
+      window.switchTab('home');
       window.showWelcomeScreen();
     } catch (err) {
       showToast('Error reading file. Check the format.');

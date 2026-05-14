@@ -3,21 +3,25 @@ import { showWelcomeScreen } from './welcome.js';
 import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistoryBlock, openEditModal, closeEditModal, saveEdit, deleteEditSession, navigateCalendar, openCalendarDay, closeCalendarDay, openManualWorkoutSelect, openSessionEdit, closeSessionEdit, saveSessionEdit, seDeleteExercise, seDeleteSet, deleteSession } from './progress.js';
 import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
-import { renderPlan } from './plan.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert, connectHealth, toggleHealthEnabled, toggleHealthSteps, toggleHealthWeight } from './settings.js';
 import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility } from './restTimer.js';
 import { initHealthKit } from './healthkit.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
 import { openExerciseSelector, closeExerciseSelector, exSelFilterMuscle, exSelSearch, exSelPickExercise, exSelShowCreate, exSelCancelCreate, exSelConfirmCreate } from './exerciseSelector.js';
 import { showProgramBuilder, closeProgramBuilder, pbUpdateName, pbSelectDayCount, pbToggleDay, pbSetDayName, pbAddExercise, pbEditExercise, pbRemoveExercise, pbSetRepType, pbSaveProgram, pbConfirmSetsReps, pbCancelSetsReps, pbIncrSets, pbDecrSets, pbIncrRepMin, pbDecrRepMin, pbIncrRepMax, pbDecrRepMax, pbIncrFixed, pbDecrFixed } from './programBuilder.js';
+import { renderHome, homeStartWorkout } from './home.js';
+import { renderMyPlans, showCreatePlanSheet } from './myplans.js';
 import { state } from './data.js';
 
 function switchTab(tab) {
+  // Backward compat: 'plan' → 'myPlans', 'settings' → 'profile'
+  if (tab === 'plan') tab = 'myPlans';
+  if (tab === 'settings') tab = 'profile';
+
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 
   if (tab === 'session') {
-    // No tab button highlights for the session page
     document.getElementById('sessionPage').classList.add('active');
     hideSessionBanner();
     renderSession();
@@ -25,28 +29,34 @@ function switchTab(tab) {
     return;
   }
 
-  if (tab === 'plan') {
-    document.querySelectorAll('.tab')[0].classList.add('active');
-    document.getElementById('planPage').classList.add('active');
-    renderPlan();
+  const tabEl = document.querySelector(`.tab[data-tab="${tab}"]`);
+  if (tabEl) tabEl.classList.add('active');
+
+  if (tab === 'home') {
+    document.getElementById('homePage').classList.add('active');
+    renderHome();
+  } else if (tab === 'myPlans') {
+    document.getElementById('myPlansPage').classList.add('active');
+    renderMyPlans();
   } else if (tab === 'progress') {
-    document.querySelectorAll('.tab')[1].classList.add('active');
     document.getElementById('progressPage').classList.add('active');
     renderProgress();
-  } else if (tab === 'settings') {
-    document.querySelectorAll('.tab')[2].classList.add('active');
+  } else if (tab === 'profile') {
     document.getElementById('settingsPage').classList.add('active');
     renderSettings();
   }
 
-  // Show or hide the active workout banner on all non-session tabs
   updateSessionBanner();
   updatePillVisibility();
 }
 
 // All window bindings — the only place inline onclick handlers can reach these functions
 window.switchTab = switchTab;
-window.renderPlan = renderPlan;
+window.renderHome = renderHome;
+window.renderMyPlans = renderMyPlans;
+window.renderPlan = renderMyPlans; // backward compat alias
+window.homeStartWorkout = homeStartWorkout;
+window.showCreatePlanSheet = showCreatePlanSheet;
 
 window.startSession = startSession;
 window.startTrackAsYouGoWorkout = startTrackAsYouGoWorkout;
@@ -84,10 +94,10 @@ window.seDeleteSet = seDeleteSet;
 window.deleteSession = deleteSession;
 
 window.exportData = exportData;
-window.importData = (event) => importData(event, () => renderPlan());
+window.importData = (event) => importData(event, () => renderMyPlans());
 window.openResetModal = openResetModal;
 window.closeResetModal = closeResetModal;
-window.confirmReset = () => { confirmReset(); switchTab('plan'); };
+window.confirmReset = () => { confirmReset(); switchTab('home'); };
 
 window.renderSettings = renderSettings;
 window.editProfileName = editProfileName;
@@ -167,18 +177,16 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost' && locatio
 
 loadData();
 initRestTimer();
-// Non-blocking HealthKit init — silent no-op on web, requests permissions on iOS
 initHealthKit().catch(() => {});
 
 if (state.currentSession) {
-  // Go directly to session page — banner not shown while on session screen
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('sessionPage').classList.add('active');
   renderSession();
 } else if (!state.profile) {
   showOnboarding();
 } else {
-  renderPlan();
+  switchTab('home');
   showWelcomeScreen();
 }
 
