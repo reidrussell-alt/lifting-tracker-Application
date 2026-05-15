@@ -42,32 +42,42 @@ graph TD
 
     Welcome[Welcome Screen\nGreeting + Next Workout] -->|Tap| Main
 
-    Main{Main App} --> PlanTab[Plan Tab]
+    Main{Main App} --> HomeTab[Home Tab]
+    Main --> MyPlansTab[My Plans Tab]
     Main --> ProgressTab[Progress Tab]
-    Main --> SettingsTab[Settings Tab]
+    Main --> ProfileTab[Profile Tab]
 
-    PlanTab -->|Structured mode| ViewPlan[Active Program\nDay Cards + Rules]
-    PlanTab -->|Track As You Go| TrackPlan[Track As You Go\nStart Workout button]
-    ViewPlan --> StartSession[Start Structured Session]
-    TrackPlan --> StartTAYG[Start Track-As-You-Go Session]
+    HomeTab --> Readiness[Readiness Strip\nReady · Day · ex · min]
+    HomeTab --> StartBtn[Start Workout CTA]
+    HomeTab --> SplitGrid[Split Progress Grid\n3 cell states]
+    HomeTab --> Momentum[Momentum Row\nPR card + Coaching card]
+    HomeTab --> Yesterday[Yesterday Summary Card]
+    StartBtn -->|Structured| StartSheet[Day Picker Sheet]
+    StartBtn -->|Track As You Go| StartTAYG[Start TAYG Session]
+    StartSheet --> StartSession[Start Structured Session]
+
+    MyPlansTab -->|Structured| ActiveSection[Active Program\nDay cards — no Start button]
+    MyPlansTab --> LibrarySection[Your Library\nInactive programs + Set Active]
+    ActiveSection -->|Chevron| ProgramBuilder[Program Builder\nFull editor, focused to day]
+    LibrarySection -->|Set Active| ConfirmSwitch[Confirm Modal → switch]
+    LibrarySection -->|···| SecondaryActions[Duplicate / Delete]
 
     StartSession --> ActiveSession[Active Session\nLog sets, notes, BW]
     StartTAYG --> ActiveSession
     ActiveSession -->|Add Exercise| ExercisePicker[Exercise Picker Modal]
-    ActiveSession -->|Abandon| PlanTab
+    ActiveSession -->|Abandon| HomeTab
     ActiveSession -->|Finish| ConfirmModal[Confirm Finish Modal]
     ConfirmModal -->|Save| SaveSession[Save to localStorage]
-    SaveSession --> ProgressTab
+    SaveSession --> HomeTab
 
     ProgressTab --> Stats[Stats Overview]
     ProgressTab --> Calendar[Monthly Calendar]
     ProgressTab --> Charts[Per-muscle Charts]
     Charts --> EditModal[Edit Past Session Modal]
 
-    SettingsTab --> ProfileSection[Profile: name, mode]
-    SettingsTab --> ProgramsSection[Programs: list, activate, duplicate, delete]
-    SettingsTab --> DataSection[Data: export, import, reset]
-    ProgramsSection --> CreateProgram[Create Program from Template]
+    ProfileTab --> ProfileSection[Profile: name, mode]
+    ProfileTab --> DataSection[Data: export, import, reset]
+    ProfileTab --> HealthSection[HealthKit — iOS only]
 ```
 
 ---
@@ -81,12 +91,18 @@ graph LR
     end
 
     subgraph UI Modules
-        plan.js
+        home.js
+        myplans.js
         session.js
         progress.js
         welcome.js
         settings.js
         onboarding.js
+        programBuilder.js
+        exerciseSelector.js
+        restTimer.js
+        sessionBanner.js
+        healthkit.js
     end
 
     subgraph Shared
@@ -98,15 +114,25 @@ graph LR
         programTemplates.js
     end
 
-    app.js --> plan.js
+    app.js --> home.js
+    app.js --> myplans.js
     app.js --> session.js
     app.js --> progress.js
     app.js --> welcome.js
     app.js --> settings.js
     app.js --> onboarding.js
+    app.js --> programBuilder.js
+    app.js --> exerciseSelector.js
+    app.js --> restTimer.js
+    app.js --> sessionBanner.js
+    app.js --> healthkit.js
     app.js --> data.js
 
-    plan.js --> data.js
+    home.js --> data.js
+    home.js --> session.js
+
+    myplans.js --> data.js
+    myplans.js --> programTemplates.js
 
     session.js --> data.js
     session.js --> program.js
@@ -128,6 +154,10 @@ graph LR
     onboarding.js --> programTemplates.js
     onboarding.js --> utils.js
 
+    programBuilder.js --> data.js
+    programBuilder.js --> exerciseLibrary.js
+    exerciseSelector.js --> exerciseLibrary.js
+
     data.js --> utils.js
     data.js --> program.js
     programTemplates.js --> exerciseLibrary.js
@@ -140,16 +170,22 @@ graph LR
 
 | Module | Imports | Responsibilities |
 |--------|---------|-----------------|
-| `app.js` | All modules | Entry point. Binds all `window.*` handlers. Calls `loadData()`, shows onboarding if new user, otherwise `renderPlan()` + `showWelcomeScreen()`. Registers service worker (non-localhost only). |
+| `app.js` | All modules | Entry point. Binds all `window.*` handlers. Calls `loadData()`, shows onboarding if new user, otherwise `switchTab('home')` + `showWelcomeScreen()`. Registers service worker (non-localhost only). |
+| `home.js` | `data.js`, `session.js` | Home tab. Week streak, readiness strip (48h rule), split progress grid (3 cell states: completed/today/future), momentum row (PR card mocked + coaching via `getSuggestion`), yesterday card, stat footer. |
+| `myplans.js` | `data.js`, `programTemplates.js` | My Plans tab — program management workshop only (no Start buttons). Active program day cards with exercise preview + chevron → program builder. Library section with Set Active / Duplicate / Delete overflow. |
 | `program.js` | _(none)_ | Static data: original 4-day split, extended `MUSCLE_GROUPS` mapping (covers all exercise library IDs), display metadata. |
-| `data.js` | `utils.js`, `program.js` | `state` object (profile, programs, history). `loadData()` with v2→v3 migration, `saveData()`, `exportData()`, `importData()`. Exports `migrateV2ToV3()`. |
-| `utils.js` | _(none)_ | `todayDateString()`, `isoDateOnly()`, `formatDate()`, `formatDateShort()`, `showToast()`. |
-| `exerciseLibrary.js` | _(none)_ | 60+ exercises with id, name, muscleGroup, loadType. `getExerciseById()`, `getExercisesByMuscleGroup()`, `searchExercises()`. |
+| `data.js` | `utils.js`, `program.js` | `state` object (profile, programs, history). `loadData()` with v2→v3→v4 migration, `saveData()`, `exportData()`, `importData()`. |
+| `utils.js` | _(none)_ | `todayDateString()`, `isoDateOnly()`, `formatDate()`, `formatDateShort()`, `showToast()`, `showConfirm()`. |
+| `exerciseLibrary.js` | _(none)_ | 82 exercises with id, name, muscleGroup, loadType. `getExerciseById()`, `getExercisesByMuscleGroup()`, `searchExercises()`. |
 | `programTemplates.js` | `exerciseLibrary.js` | 6 program templates (3-day full body, 4-day upper/lower, 4-day PPL, 5-day PPL, 6-day PPL 2×, 5-day bro split). `getTemplateById()`. |
 | `onboarding.js` | `data.js`, `programTemplates.js`, `utils.js` | Multi-step new-user onboarding: welcome → name → mode → template/track-as-you-go → save. Also handles backup import during onboarding. |
-| `settings.js` | `data.js`, `programTemplates.js`, `utils.js` | Settings tab: profile editing, program list/activate/duplicate/delete, create program from template, data backup/restore. |
-| `session.js` | `data.js`, `program.js`, `exerciseLibrary.js`, `utils.js` | Structured and track-as-you-go session lifecycle. Exercise picker modal. `startSession()`, `startTrackAsYouGoWorkout()`, `renderSession()`, progressive overload hints. |
-| `plan.js` | `data.js` | Renders Plan tab from active program in `state.programs`. Handles structured, track-as-you-go, and no-program states. |
+| `settings.js` | `data.js`, `programTemplates.js`, `utils.js` | Profile tab: profile editing, program activate/duplicate/delete, data backup/restore, HealthKit toggle. |
+| `session.js` | `data.js`, `program.js`, `exerciseLibrary.js`, `utils.js` | Structured and TAYG session lifecycle. `startSession()`, `startTrackAsYouGoWorkout()`, `renderSession()`, `getSuggestion()` (progressive overload), `getLastPerformance()`. |
+| `programBuilder.js` | `data.js`, `exerciseLibrary.js` | Full-screen program editor overlay. `showProgramBuilder(editingId, focusDayId?)` — optional `focusDayId` pre-expands and scrolls to the target day. Drag-to-reorder via Sortable.js. |
+| `exerciseSelector.js` | `exerciseLibrary.js` | Modal for picking/creating exercises during session or program builder. |
+| `restTimer.js` | _(none)_ | Floating rest timer pill. Auto-starts after set logged. |
+| `sessionBanner.js` | _(none)_ | Persistent banner shown on non-session tabs when a session is in progress. |
+| `healthkit.js` | _(none)_ | iOS Capacitor HealthKit integration (steps, weight). No-ops on non-iOS. |
 | `progress.js` | `data.js`, `program.js`, `utils.js`, `charts.js` | Stats, calendar (dynamic colors by dayId hash), per-muscle charts, session history, edit modal. |
 | `charts.js` | `utils.js` | `drawSingleLineChart()` — canvas-based line chart. |
 | `welcome.js` | `data.js` | Splash screen using `state.profile.name` and active program's next workout. |
@@ -186,7 +222,7 @@ sequenceDiagram
     UI->>session.js: confirmFinishSession()
     session.js->>data.js: Push session to state.history
     data.js->>localStorage: JSON.stringify and setItem
-    session.js->>UI: window.switchTab('plan')
+    session.js->>UI: window.switchTab('home')
 ```
 
 ---

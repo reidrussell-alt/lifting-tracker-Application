@@ -1,39 +1,102 @@
 import { state } from './data.js';
+import { getSuggestion, getLastPerformance } from './session.js';
 
 export function renderHome() {
   const el = document.getElementById('homePage');
   if (!el) return;
 
   const name = state.profile?.name || 'there';
-  const { grid, legendHtml, typesThisWeek } = buildWeekView();
+  const streak = calcWeekStreak();
+  const activeProgram = (state.programs || []).find(p => p.isActive);
+
+  const today = new Date();
+  const dow = today.getDay();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - dow);
+  weekStart.setHours(0, 0, 0, 0);
+  const sessionsThisWeek = (state.history || []).filter(s => new Date(s.date) >= weekStart).length;
 
   el.innerHTML = `
-    <div class="home-welcome">
-      <div class="home-greeting-line">Welcome,</div>
-      <div class="home-name-line">${name}</div>
-    </div>
-
+    ${buildHeader(name, streak)}
+    ${buildReadinessStrip(activeProgram)}
     <button class="home-start-btn" onclick="window.homeStartWorkout()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;flex-shrink:0;"><polygon points="5,3 19,12 5,21"/></svg>
       Start Workout
     </button>
-
-    <div class="home-section-label">This Week</div>
-    <div class="home-week-card">
-      ${grid}
-      ${legendHtml}
+    ${buildSplitProgress(activeProgram, sessionsThisWeek, streak)}
+    <div class="home-section-label">Momentum</div>
+    <div class="home-momentum-row">
+      ${buildPrCard()}
+      ${buildCoachingCard(activeProgram)}
     </div>
-
-    ${buildStatsStrip()}
+    ${buildYesterdayCard()}
+    ${buildStatFooter()}
   `;
 }
 
-// ─── Week View ────────────────────────────────────────────────────────────────
+// ─── Header ───────────────────────────────────────────────────────────────────
 
-function buildWeekView() {
+function buildHeader(name, streak) {
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayLabel = DAYS[new Date().getDay()];
+
+  const badgeClass = streak > 0 ? 'home-streak-badge' : 'home-streak-badge home-streak-badge--empty';
+  const streakBadge = `<div class="${badgeClass}">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px;flex-shrink:0;">
+        <path d="M12 2C9 8 6 9 6 13a6 6 0 0012 0c0-4-3-5-6-11zm0 16a3 3 0 01-3-3c0-2 1.5-3 3-5 1.5 2 3 3 3 5a3 3 0 01-3 3z"/>
+      </svg>
+      ${streak} WK
+    </div>`;
+
+  return `
+    <div class="home-header">
+      <div class="home-header-left">
+        <div class="home-day-label">${dayLabel}</div>
+        <div class="home-greeting">Hey ${name}</div>
+      </div>
+      ${streakBadge}
+    </div>
+  `;
+}
+
+// ─── Readiness Strip ──────────────────────────────────────────────────────────
+
+function buildReadinessStrip(activeProgram) {
+  const history = state.history || [];
+  let isReady = true;
+  if (history.length > 0) {
+    const last = history.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
+    const hoursAgo = (Date.now() - new Date(last.date)) / (1000 * 60 * 60);
+    isReady = hoursAgo >= 48;
+  }
+
+  const statusText = isReady ? 'Ready' : 'Recovering';
+  const dotClass = isReady ? 'home-readiness-dot' : 'home-readiness-dot home-readiness-dot--recovering';
+
+  let contextText = '';
+  if (activeProgram) {
+    const suggested = getSuggestedDay(activeProgram);
+    if (suggested) {
+      const type = suggested.type || 'default';
+      const typeLabel = { push: 'Push Day', pull: 'Pull Day', legs: 'Legs Day' }[type] || 'Workout';
+      const exCount = suggested.exercises.length;
+      const totalSets = suggested.exercises.reduce((s, e) => s + (e.sets || 0), 0);
+      const estMin = Math.max(20, Math.round(totalSets * 2.5 / 5) * 5);
+      contextText = ` · ${typeLabel} · ${exCount} ex · ${estMin} min`;
+    }
+  }
+
+  return `
+    <div class="home-readiness-strip">
+      <div class="${dotClass}"></div>
+      <span class="home-readiness-text">${statusText}${contextText}</span>
+    </div>
+  `;
+}
+
+// ─── Split Progress ───────────────────────────────────────────────────────────
+
+function buildSplitProgress(activeProgram, sessionsThisWeek, streak) {
   const today = new Date();
   const dow = today.getDay();
 
@@ -41,17 +104,17 @@ function buildWeekView() {
   weekStart.setDate(today.getDate() - dow);
   weekStart.setHours(0, 0, 0, 0);
 
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
-
   const byDay = {};
-  for (const s of state.history) {
+  for (const s of (state.history || [])) {
     const d = new Date(s.date);
-    if (d >= weekStart && d < weekEnd) {
+    if (d >= weekStart) {
       const idx = d.getDay();
       if (!byDay[idx] || new Date(s.date) > new Date(byDay[idx].date)) byDay[idx] = s;
     }
   }
+
+  const suggested = activeProgram ? getSuggestedDay(activeProgram) : null;
+  const totalDays = activeProgram ? activeProgram.days.length : 0;
 
   const DOW_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const typesThisWeek = new Set();
@@ -60,7 +123,7 @@ function buildWeekView() {
   for (let i = 0; i < 7; i++) {
     const session = byDay[i];
     const isToday = i === dow;
-    const cellClass = ['home-week-cell', isToday ? 'home-week-cell--today' : ''].filter(Boolean).join(' ');
+    const isPast = i < dow;
 
     const dateObj = new Date(weekStart);
     dateObj.setDate(weekStart.getDate() + i);
@@ -72,23 +135,24 @@ function buildWeekView() {
       typesThisWeek.add(type);
       const label = abbreviateDay(session.dayTitle);
       badgeHtml = `<div class="home-week-badge home-week-badge--${type}" onclick="window.openCalendarDay('${iso}')">${label}</div>`;
+    } else if (isToday) {
+      const todayLabel = suggested ? abbreviateDay(suggested.name) : '·';
+      badgeHtml = `<div class="home-week-badge home-week-badge--today">${todayLabel}</div>`;
+    } else if (isPast) {
+      badgeHtml = `<div class="home-week-badge home-week-badge--skipped"></div>`;
     } else {
-      badgeHtml = `<div class="home-week-badge home-week-badge--empty"></div>`;
+      badgeHtml = `<div class="home-week-badge home-week-badge--future"></div>`;
     }
 
     cells += `
-      <div class="${cellClass}">
-        <div class="home-week-dow">${DOW_LABELS[i]}</div>
+      <div class="home-week-cell">
+        <div class="home-week-dow${isToday ? ' home-week-dow--today' : ''}">${DOW_LABELS[i]}</div>
         ${badgeHtml}
       </div>
     `;
   }
 
-  const TYPE_LABELS = {
-    push: 'Push', pull: 'Pull', legs: 'Legs',
-    recovery: 'Recovery', default: 'Workout'
-  };
-
+  const TYPE_LABELS = { push: 'Push', pull: 'Pull', legs: 'Legs', recovery: 'Recovery', default: 'Workout' };
   let legendHtml = '';
   if (typesThisWeek.size > 0) {
     const items = [...typesThisWeek].map(t =>
@@ -100,48 +164,151 @@ function buildWeekView() {
     legendHtml = `<div class="home-week-legend">${items}</div>`;
   }
 
-  return { grid: `<div class="home-week-grid">${cells}</div>`, legendHtml, typesThisWeek };
-}
-
-// ─── Stats Strip ──────────────────────────────────────────────────────────────
-
-function buildStatsStrip() {
-  const history = state.history || [];
-  const total = history.length;
-
-  const today = new Date();
-  const dow = today.getDay();
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - dow);
-  weekStart.setHours(0, 0, 0, 0);
-  const thisWeek = history.filter(s => new Date(s.date) >= weekStart).length;
-
-  let lastLabel = '—';
-  if (total > 0) {
-    const last = history.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
-    const diffDays = Math.floor((today - new Date(last.date)) / (1000 * 60 * 60 * 24));
-    lastLabel = diffDays === 0 ? 'Today' : diffDays === 1 ? '1d ago' : `${diffDays}d ago`;
+  let statusHtml = '';
+  if (totalDays > 0) {
+    const statusText = streak > 0
+      ? `${sessionsThisWeek}/${totalDays} · WK ${streak}`
+      : `${sessionsThisWeek}/${totalDays}`;
+    statusHtml = `<span class="home-split-status">${statusText}</span>`;
   }
 
   return `
-    <div class="home-stats-strip">
-      <div class="home-stat-tile">
-        <div class="home-stat-value">${thisWeek}</div>
-        <div class="home-stat-label">This Week</div>
+    <div class="home-split-card">
+      <div class="home-split-header">
+        <span class="home-split-label">Split Progress</span>
+        ${statusHtml}
       </div>
-      <div class="home-stat-tile">
-        <div class="home-stat-value">${total}</div>
-        <div class="home-stat-label">Total</div>
-      </div>
-      <div class="home-stat-tile">
-        <div class="home-stat-value home-stat-value--sm">${lastLabel}</div>
-        <div class="home-stat-label">Last Session</div>
-      </div>
+      <div class="home-week-grid">${cells}</div>
+      ${legendHtml}
     </div>
   `;
 }
 
+// ─── Momentum — PR Card (mocked) ──────────────────────────────────────────────
+
+function buildPrCard() {
+  // TODO: Replace with real PR detection — compare sets against all-time max per exercise
+  return `
+    <div class="home-momentum-card home-momentum-card--warm">
+      <div class="home-momentum-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;flex-shrink:0;">
+          <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 000-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+          <path d="M18 2H6v7a6 6 0 0012 0V2z"/>
+        </svg>
+        New PR
+      </div>
+      <div class="home-momentum-name home-momentum-empty">Log a few sessions —<br>PRs tracked here</div>
+    </div>
+  `;
+}
+
+// ─── Momentum — Coaching Card ─────────────────────────────────────────────────
+
+function buildCoachingCard(activeProgram) {
+  let exerciseName = null;
+  let suggestionMsg = null;
+
+  if (activeProgram) {
+    const suggested = getSuggestedDay(activeProgram);
+    if (suggested) {
+      for (const ex of suggested.exercises) {
+        const last = getLastPerformance(ex.id);
+        const s = getSuggestion(ex, last);
+        if (s) {
+          if (!exerciseName || s.msg.toLowerCase().includes('bump')) {
+            exerciseName = ex.name;
+            suggestionMsg = s.msg;
+            if (s.msg.toLowerCase().includes('bump')) break;
+          }
+        }
+      }
+    }
+  }
+
+  const content = exerciseName
+    ? `<div class="home-momentum-name">${exerciseName}</div>
+       <div class="home-momentum-value">${suggestionMsg}</div>`
+    : `<div class="home-momentum-name home-momentum-empty">Stick with<br>current weights</div>`;
+
+  return `
+    <div class="home-momentum-card home-momentum-card--cool">
+      <div class="home-momentum-tag home-momentum-tag--cool">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
+        Time to Push
+      </div>
+      ${content}
+    </div>
+  `;
+}
+
+// ─── Yesterday Card ───────────────────────────────────────────────────────────
+
+function buildYesterdayCard() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const yesterdayIso = yesterday.toISOString().split('T')[0];
+
+  const session = (state.history || []).find(s => s.date.startsWith(yesterdayIso));
+  if (!session) return '';
+
+  let volume = 0;
+  for (const ex of session.exercises) {
+    for (const set of ex.sets) {
+      if (set.weight && set.reps) volume += parseFloat(set.weight) * parseInt(set.reps);
+    }
+  }
+  const volumeLabel = volume > 0 ? ` · ${Math.round(volume).toLocaleString()} lbs` : '';
+
+  return `
+    <div class="home-yesterday-card" onclick="window.homeOpenYesterday('${yesterdayIso}')">
+      <div>
+        <div class="home-yesterday-label">Yesterday</div>
+        <div class="home-yesterday-summary">${session.dayTitle}${volumeLabel}</div>
+      </div>
+      <div class="home-yesterday-chevron">›</div>
+    </div>
+  `;
+}
+
+// ─── Stat Footer ─────────────────────────────────────────────────────────────
+
+function buildStatFooter() {
+  const total = (state.history || []).length;
+  if (total === 0) return '';
+  const label = total === 1 ? '1 session total' : `${total} sessions total`;
+  return `<div class="home-stat-footer">${label}</div>`;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function calcWeekStreak() {
+  let checkStart = new Date();
+  checkStart.setDate(checkStart.getDate() - checkStart.getDay());
+  checkStart.setHours(0, 0, 0, 0);
+
+  let streak = 0;
+  while (true) {
+    const checkEnd = new Date(checkStart);
+    checkEnd.setDate(checkStart.getDate() + 7);
+    const hasSession = (state.history || []).some(s => {
+      const d = new Date(s.date);
+      return d >= checkStart && d < checkEnd;
+    });
+    if (!hasSession) break;
+    streak++;
+    checkStart.setDate(checkStart.getDate() - 7);
+  }
+  return streak;
+}
 
 function getDayType(session) {
   for (const prog of (state.programs || [])) {
@@ -156,13 +323,13 @@ function getDayType(session) {
 }
 
 function abbreviateDay(title) {
-  if (!title) return '?';
+  if (!title) return '·';
   const base = title.split(' - ')[0].trim();
   return base.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).join('');
 }
 
 function getSuggestedDay(program) {
-  const sessions = state.history.filter(s => s.programId === program.id);
+  const sessions = (state.history || []).filter(s => s.programId === program.id);
   if (sessions.length === 0) return program.days[0];
   const last = sessions.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
   const lastIdx = program.days.findIndex(d => d.id === last.dayId);
@@ -174,25 +341,21 @@ function getSuggestedDay(program) {
 
 export function homeStartWorkout() {
   const profile = state.profile;
-
   if (!profile || profile.trainingMode !== 'structured') {
     window.startTrackAsYouGoWorkout();
     return;
   }
-
   const activeProgram = (state.programs || []).find(p => p.isActive);
   if (!activeProgram) {
     window.switchTab('myPlans');
     return;
   }
-
   showStartSheet(activeProgram);
 }
 
 function showStartSheet(program) {
   const modal = document.getElementById('calendarDayModal');
   const body = document.getElementById('calendarDayBody');
-
   const suggested = getSuggestedDay(program);
 
   let html = `
@@ -228,4 +391,9 @@ function showStartSheet(program) {
 
   body.innerHTML = html;
   modal.classList.add('active');
+}
+
+export function homeOpenYesterday(dateIso) {
+  window.switchTab('progress');
+  setTimeout(() => window.openCalendarDay(dateIso), 50);
 }

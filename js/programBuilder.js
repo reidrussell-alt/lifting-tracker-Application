@@ -27,7 +27,7 @@ function _blankDays(count, existing) {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export function showProgramBuilder(editingId = null) {
+export function showProgramBuilder(editingId = null, focusDayId = null) {
   if (editingId) {
     const prog = state.programs.find(p => p.id === editingId);
     if (!prog) return;
@@ -46,13 +46,20 @@ export function showProgramBuilder(editingId = null) {
           repRangeMax: ex.repRangeMax ?? _parseMax(ex.repRange),
           order: j
         })),
-        expanded: false
+        expanded: focusDayId ? d.id === focusDayId : false
       }))
     };
   } else {
     _bs = _fresh();
   }
   _mount();
+  if (focusDayId) {
+    // initSortable runs at 60ms; scroll after it settles
+    setTimeout(() => {
+      const el = document.getElementById(`pbDay_${focusDayId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  }
 }
 
 export function closeProgramBuilder() {

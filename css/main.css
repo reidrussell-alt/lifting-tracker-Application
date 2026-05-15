@@ -11,7 +11,9 @@
   --accent-dim: #a8c82a;   /* desaturated lime — secondary/supporting accent */
   --push: #ff6b35;
   --pull: #3a9eff;
-  --legs: #d4ff3a;
+  --warm: #ff8833;
+  --cool: #66cc88;
+  --legs: #22d3ee;
   --recovery: #b86bff;
   --success: #4ade80;
   /* 5-step gray scale */
@@ -2698,32 +2700,53 @@ body {
 
 /* ===== HOME TAB ===== */
 
-.home-welcome {
-  padding: 8px 4px 24px;
+.home-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 20px;
 }
 
-.home-greeting-line {
-  font-family: 'Inter Tight', sans-serif;
-  font-size: 16px; font-weight: 400;
+.home-header-left { display: flex; flex-direction: column; gap: 2px; }
+
+.home-day-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
   color: var(--text-dim);
-  margin-bottom: 2px;
 }
 
-.home-name-line {
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 38px; letter-spacing: -1.5px;
-  color: var(--text); line-height: 1;
+.home-greeting {
+  font-size: 26px; font-weight: 500;
+  color: var(--text); line-height: 1.1;
+}
+
+.home-streak-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,136,51,0.12);
+  border: 1px solid rgba(255,136,51,0.3);
+  color: var(--warm);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 5px 10px; border-radius: 99px;
+  white-space: nowrap;
+}
+
+.home-streak-badge--empty {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-dimmer);
 }
 
 .home-start-btn {
-  width: 100%; background: var(--accent); color: var(--bg);
-  border: none; border-radius: 16px; padding: 18px 20px;
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 16px; letter-spacing: 0.5px; text-transform: uppercase;
+  width: 100%; background: var(--accent); color: #000;
+  border: none; border-radius: 99px; padding: 17px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
   cursor: pointer; display: flex; align-items: center;
-  justify-content: center; gap: 10px; margin-bottom: 28px;
+  justify-content: center; gap: 10px; margin-bottom: 20px;
 }
-.home-start-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
 .home-start-btn:active { transform: scale(0.97); opacity: 0.9; }
 
 .home-section-label {
@@ -2766,7 +2789,7 @@ body {
 
 .home-week-badge--push   { background: rgba(255,107,53,0.15); border-color: rgba(255,107,53,0.5); color: var(--push); }
 .home-week-badge--pull   { background: rgba(58,158,255,0.15); border-color: rgba(58,158,255,0.5); color: var(--pull); }
-.home-week-badge--legs   { background: rgba(212,255,58,0.15); border-color: rgba(212,255,58,0.5); color: var(--legs); }
+.home-week-badge--legs   { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.45); color: var(--legs); }
 .home-week-badge--recovery { background: rgba(184,107,255,0.15); border-color: rgba(184,107,255,0.5); color: var(--recovery); }
 .home-week-badge--default { background: rgba(212,255,58,0.12); border-color: rgba(212,255,58,0.4); color: var(--accent); }
 
@@ -2774,22 +2797,189 @@ body {
 
 /* ===== MY PLANS TAB ===== */
 
-.myplans-divider {
-  height: 1px; background: var(--border);
-  margin: 24px 0 20px;
+.myplans-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 24px;
 }
 
-.myplans-section-title {
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 11px; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--text-dim);
-  margin-bottom: 14px;
+.myplans-title {
+  font-size: 26px; font-weight: 500; color: var(--text);
 }
 
-.myplans-create-btn {
+.myplans-add-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(212,255,58,0.1);
+  border: 1px solid rgba(212,255,58,0.3);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.myplans-add-btn:active { background: rgba(212,255,58,0.2); }
+
+.myplans-section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-dim);
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 12px; margin-top: 24px;
+}
+.myplans-section-label:first-of-type { margin-top: 0; }
+.myplans-section-label--active { color: var(--accent); }
+
+.myplans-active-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+
+.myplans-program-identity { margin-bottom: 14px; }
+
+.myplans-program-name {
+  font-size: 18px; font-weight: 500;
+  color: var(--text); margin-bottom: 3px;
+}
+
+.myplans-program-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-dim);
+}
+
+/* Day cards */
+.myplans-day-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 10px 12px 12px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 8px;
+}
+
+.myplans-day-badge {
+  width: 28px; height: 28px;
+  background: var(--surface-3); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700;
+  color: var(--text-secondary); flex-shrink: 0;
+}
+
+.myplans-day-content {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.myplans-day-row {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 8px;
+}
+
+.myplans-day-name {
+  font-size: 14px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.myplans-day-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text-dim);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+.myplans-day-preview {
+  font-size: 12px; color: var(--text-dimmer);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.myplans-day-chevron {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dimmer);
+  display: flex; align-items: center;
+  padding: 4px; margin: -4px; flex-shrink: 0;
+}
+.myplans-day-chevron:active { color: var(--text); }
+
+/* Library */
+.myplans-library-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+  display: flex; flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.myplans-library-main {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px;
+}
+
+.myplans-library-info { flex: 1; min-width: 0; }
+
+.myplans-library-name {
+  font-size: 14px; font-weight: 500;
+  color: var(--text-secondary); margin-bottom: 3px;
+}
+
+.myplans-library-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-dimmer);
+}
+
+.myplans-library-btns {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+
+.myplans-set-active-btn {
+  background: transparent;
+  border: 1px solid rgba(212,255,58,0.4);
+  color: var(--accent); border-radius: 99px;
+  padding: 6px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap;
+}
+.myplans-set-active-btn:active { background: rgba(212,255,58,0.08); }
+
+.myplans-more-btn {
+  background: transparent; border: none;
+  color: var(--text-dimmer); cursor: pointer;
+  font-size: 16px; line-height: 1;
+  padding: 4px 6px; border-radius: 6px;
+  letter-spacing: 1px;
+}
+.myplans-more-btn:active { background: var(--surface-3); color: var(--text); }
+
+/* Secondary actions — hidden until card is open */
+.myplans-library-secondary {
+  display: flex; gap: 8px;
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.2s ease, padding-top 0.2s ease;
+  padding-top: 0;
+}
+
+.myplans-library-card--open .myplans-library-secondary {
+  max-height: 48px;
+  padding-top: 10px;
+}
+
+.myplans-sec-btn {
+  background: var(--surface-3);
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+  border-radius: 8px; padding: 6px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  cursor: pointer;
+}
+.myplans-sec-btn:active { opacity: 0.75; }
+.myplans-sec-btn--danger { color: #f87171; border-color: rgba(248,113,113,0.3); }
+
+/* Create CTA — gray dashed, not lime */
+.myplans-create-cta {
   width: 100%; background: transparent;
-  border: 1px dashed rgba(212,255,58,0.4);
-  color: var(--accent); border-radius: 14px; padding: 14px;
+  border: 1px dashed var(--border-bright);
+  color: var(--text-dim); border-radius: 14px; padding: 14px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px; font-weight: 700;
   letter-spacing: 1px; text-transform: uppercase;
@@ -2797,7 +2987,27 @@ body {
   align-items: center; justify-content: center; gap: 8px;
   margin-top: 8px;
 }
-.myplans-create-btn:active { background: rgba(212,255,58,0.05); }
+.myplans-create-cta:active { background: rgba(255,255,255,0.03); }
+
+/* Empty / no-program states */
+.myplans-empty-library,
+.myplans-no-program {
+  font-size: 13px; color: var(--text-dimmer);
+  padding: 4px 0 16px; line-height: 1.5;
+}
+
+.myplans-at-limit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-dimmer);
+  text-align: center; padding: 12px 0 4px;
+}
+
+.myplans-inline-link {
+  background: none; border: none; padding: 0;
+  color: var(--accent); cursor: pointer;
+  font-size: inherit; font-family: inherit;
+  text-decoration: underline; text-underline-offset: 2px;
+}
 
 /* ===== HOME — WEEK CARD WRAPPER ===== */
 .home-week-card {
@@ -2884,6 +3094,158 @@ body {
 
 .start-suggested-arrow {
   font-size: 18px; color: var(--accent); flex-shrink: 0;
+}
+
+/* ===== HOME — READINESS STRIP ===== */
+.home-readiness-strip {
+  background: var(--surface);
+  border-radius: 10px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.home-readiness-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cool); flex-shrink: 0;
+}
+
+.home-readiness-dot--recovering { background: var(--warm); }
+
+.home-readiness-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--text-secondary);
+}
+
+/* ===== HOME — SPLIT PROGRESS CARD ===== */
+.home-split-card {
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  padding: 14px 12px 12px;
+  margin-bottom: 20px;
+}
+
+.home-split-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.home-split-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.home-split-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--warm);
+}
+
+/* ===== HOME — GRID CELL STATES ===== */
+.home-week-dow--today { color: var(--accent); }
+
+.home-week-badge--today {
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  background: rgba(212,255,58,0.06);
+  cursor: default;
+}
+
+.home-week-badge--skipped {
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: default;
+}
+
+.home-week-badge--future {
+  border: 1px dashed var(--border);
+  background: transparent;
+  cursor: default;
+}
+
+/* ===== HOME — MOMENTUM ROW ===== */
+.home-momentum-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 16px;
+}
+
+.home-momentum-card {
+  border-radius: 12px; padding: 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 90px;
+}
+
+.home-momentum-card--warm {
+  background: rgba(255,136,51,0.08);
+  border: 1px solid rgba(255,136,51,0.2);
+}
+
+.home-momentum-card--cool {
+  background: rgba(102,204,136,0.08);
+  border: 1px solid rgba(102,204,136,0.2);
+}
+
+.home-momentum-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--warm); margin-bottom: 2px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+.home-momentum-tag--cool { color: var(--cool); }
+
+.home-momentum-name {
+  font-size: 13px; font-weight: 500;
+  color: var(--text); line-height: 1.3;
+  margin-top: 4px;
+}
+
+.home-momentum-empty {
+  color: var(--text-dim); font-size: 12px; font-weight: 400;
+}
+
+.home-momentum-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--text-secondary);
+}
+
+/* ===== HOME — YESTERDAY CARD ===== */
+.home-yesterday-card {
+  background: var(--surface);
+  border-radius: 10px;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 14px; margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.home-yesterday-card:active { opacity: 0.75; }
+
+.home-yesterday-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 4px;
+}
+
+.home-yesterday-summary {
+  font-size: 14px; font-weight: 500; color: var(--text);
+}
+
+.home-yesterday-chevron {
+  font-size: 22px; color: var(--text-dim); line-height: 1;
+}
+
+.home-stat-footer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text-dimmer);
+  text-align: center; letter-spacing: 0.5px;
+  padding: 2px 0 20px;
 }
 
 /* ===== PROFILE — STATS CARD ===== */

@@ -9,8 +9,8 @@ import { initHealthKit } from './healthkit.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
 import { openExerciseSelector, closeExerciseSelector, exSelFilterMuscle, exSelSearch, exSelPickExercise, exSelShowCreate, exSelCancelCreate, exSelConfirmCreate } from './exerciseSelector.js';
 import { showProgramBuilder, closeProgramBuilder, pbUpdateName, pbSelectDayCount, pbToggleDay, pbSetDayName, pbAddExercise, pbEditExercise, pbRemoveExercise, pbSetRepType, pbSaveProgram, pbConfirmSetsReps, pbCancelSetsReps, pbIncrSets, pbDecrSets, pbIncrRepMin, pbDecrRepMin, pbIncrRepMax, pbDecrRepMax, pbIncrFixed, pbDecrFixed } from './programBuilder.js';
-import { renderHome, homeStartWorkout } from './home.js';
-import { renderMyPlans, showCreatePlanSheet } from './myplans.js';
+import { renderHome, homeStartWorkout, homeOpenYesterday } from './home.js';
+import { renderMyPlans, showCreatePlanSheet, myPlansToggleActions } from './myplans.js';
 import { state } from './data.js';
 
 function switchTab(tab) {
@@ -56,7 +56,9 @@ window.renderHome = renderHome;
 window.renderMyPlans = renderMyPlans;
 window.renderPlan = renderMyPlans; // backward compat alias
 window.homeStartWorkout = homeStartWorkout;
+window.homeOpenYesterday = homeOpenYesterday;
 window.showCreatePlanSheet = showCreatePlanSheet;
+window.myPlansToggleActions = myPlansToggleActions;
 
 window.startSession = startSession;
 window.startTrackAsYouGoWorkout = startTrackAsYouGoWorkout;

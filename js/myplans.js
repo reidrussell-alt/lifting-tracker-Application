@@ -6,176 +6,167 @@ const MAX_CUSTOM_PROGRAMS = 5;
 export function renderMyPlans() {
   const el = document.getElementById('myPlansPage');
   if (!el) return;
+  if (!state.profile) { el.innerHTML = ''; return; }
 
-  if (!state.profile) {
-    el.innerHTML = '';
-    return;
-  }
-
-  if (state.profile.trainingMode === 'trackAsYouGo') {
-    renderTrackAsYouGoMyPlans(el);
-    return;
-  }
-
-  const activeProgram = (state.programs || []).find(p => p.isActive);
-
-  if (!activeProgram) {
-    el.innerHTML = `
-      <div class="empty-state">
-        <div class="icon">📋</div>
-        <p><strong>No active program.</strong><br>Create or activate one below.</p>
-      </div>
-      ${renderManageSectionHtml()}
-    `;
-    return;
-  }
+  const programs = state.programs || [];
+  const activeProgram = programs.find(p => p.isActive);
+  const libraryPrograms = programs.filter(p => !p.isActive);
 
   el.innerHTML = `
-    ${renderActivePlanHtml(activeProgram)}
-    ${renderManageSectionHtml()}
-  `;
-}
-
-function renderTrackAsYouGoMyPlans(el) {
-  const count = state.history.length;
-  el.innerHTML = `
-    <div class="plan-mode-header">
-      <div class="plan-mode-title">Track As You Go</div>
-      <div class="plan-mode-sub">${count} session${count !== 1 ? 's' : ''} logged</div>
-    </div>
-    ${renderManageSectionHtml()}
-  `;
-}
-
-function renderActivePlanHtml(prog) {
-  const isCustom = prog.isCustom === true;
-  const subLabel = isCustom ? 'Custom Program' : `${prog.days.length}-Day Program`;
-
-  const programSessions = state.history.filter(s => s.programId === prog.id);
-  let suggestedDayId = prog.days[0]?.id ?? null;
-
-  if (programSessions.length > 0) {
-    const last = programSessions.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
-    const lastIdx = prog.days.findIndex(d => d.id === last.dayId);
-    if (lastIdx !== -1) {
-      suggestedDayId = prog.days[(lastIdx + 1) % prog.days.length]?.id ?? null;
+    ${buildHeader()}
+    ${state.profile.trainingMode === 'trackAsYouGo'
+      ? buildTAYGSection()
+      : activeProgram
+        ? buildActiveSection(activeProgram)
+        : buildNoProgramSection()
     }
-  }
-
-  const activeDayId = state.currentSession?.dayId ?? null;
-
-  let html = `
-    <div class="plan-mode-header">
-      <div class="plan-mode-title">${prog.name}</div>
-      <div class="plan-mode-sub">${subLabel}</div>
-    </div>
+    ${buildLibrarySection(libraryPrograms)}
   `;
-
-  prog.days.forEach((d, idx) => {
-    const totalSets = d.exercises.reduce((s, e) => s + e.sets, 0);
-    const type = d.type || '';
-    const isActive = activeDayId === d.id;
-    const isNext = !isActive && d.id === suggestedDayId;
-    const cardClass = `day-card${isActive ? ' is-active-session' : ''}`;
-    const btnLabel = isActive ? 'Resume' : 'Start';
-    const btnClass = isActive ? 'start-btn resume' : 'start-btn';
-
-    const lastDate = getLastWorkoutDate(prog.id, d.id);
-    const lastStr = formatLastWorkout(lastDate);
-    const nextBadge = isNext ? `<span class="day-next-badge" title="Suggested next workout">⭐</span>` : '';
-
-    html += `
-      <div class="${cardClass}"${type ? ` data-type="${type}"` : ''}>
-        <div class="day-header">
-          <div class="day-left">
-            <div class="day-badge">${idx + 1}</div>
-            <div>
-              <div class="day-title">${d.name} ${nextBadge}</div>
-              <div class="day-desc">${d.exercises.length} exercises · ${totalSets} sets</div>
-              <div class="day-last">Last: ${lastStr}</div>
-            </div>
-          </div>
-          <button class="${btnClass}" onclick="startSession('${d.id}')">${btnLabel}</button>
-        </div>
-      </div>
-    `;
-  });
-
-  return html;
 }
 
-function getLastWorkoutDate(programId, dayId) {
-  let latest = null;
-  for (const s of state.history) {
-    if (s.programId === programId && s.dayId === dayId) {
-      if (!latest || new Date(s.date) > new Date(latest)) latest = s.date;
-    }
-  }
-  return latest;
-}
+// ─── Header ───────────────────────────────────────────────────────────────────
 
-function formatLastWorkout(dateStr) {
-  if (!dateStr) return 'Never';
-  const diffDays = Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  return `${diffDays}d ago`;
-}
-
-function renderManageSectionHtml() {
-  const customPrograms = (state.programs || []).filter(p => p.isCustom === true && !p.isActive);
-  const customCount = (state.programs || []).filter(p => p.isCustom === true).length;
-  const atLimit = customCount >= MAX_CUSTOM_PROGRAMS;
-
-  let inner = '';
-
-  if (customPrograms.length === 0) {
-    inner += `<p class="settings-empty-msg">No custom plans yet.</p>`;
-  } else {
-    inner += customPrograms.map(renderManageProgramCard).join('');
-  }
-
-  if (!atLimit) {
-    inner += `
-      <button class="myplans-create-btn" onclick="window.showCreatePlanSheet()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;">
+function buildHeader() {
+  return `
+    <div class="myplans-header">
+      <div class="myplans-title">My Plans</div>
+      <button class="myplans-add-btn" onclick="window.showCreatePlanSheet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Create a Plan
       </button>
-    `;
-  } else {
-    inner += `<p class="settings-empty-msg" style="text-align:center;margin-top:8px;">Maximum ${MAX_CUSTOM_PROGRAMS} custom plans reached. Delete one to create new.</p>`;
-  }
-
-  return `
-    <div class="settings-section">
-      <div class="settings-section-title">Manage Plans</div>
-      ${inner}
     </div>
   `;
 }
 
-function renderManageProgramCard(prog) {
-  const totalExercises = prog.days.reduce((s, d) => s + (d.exercises?.length || 0), 0);
+// ─── Active Program Section ───────────────────────────────────────────────────
+
+function buildActiveSection(program) {
+  const daySets = program.days.reduce((s, d) =>
+    s + d.exercises.reduce((a, e) => a + (e.sets || 0), 0), 0);
+  void daySets;
+
+  const dayCards = program.days.map((d, i) => buildDayCard(d, i, program.id)).join('');
+
   return `
-    <div class="program-item">
-      <div class="program-item-top">
-        <div style="flex:1;min-width:0;">
-          <div class="program-item-name">${prog.name}</div>
-          <div class="program-item-meta">${prog.days.length} day${prog.days.length !== 1 ? 's' : ''} · ${totalExercises} exercises</div>
+    <div class="myplans-section-label myplans-section-label--active">
+      <span class="myplans-active-dot"></span>
+      Active Program
+    </div>
+    <div class="myplans-program-identity">
+      <div class="myplans-program-name">${program.name}</div>
+      <div class="myplans-program-subtitle">${program.days.length} workout${program.days.length !== 1 ? 's' : ''} · rotate freely</div>
+    </div>
+    ${dayCards}
+  `;
+}
+
+function buildDayCard(day, idx, programId) {
+  const exCount = day.exercises.length;
+  const setCount = day.exercises.reduce((s, e) => s + (e.sets || 0), 0);
+  const preview = buildExercisePreview(day.exercises);
+
+  return `
+    <div class="myplans-day-card">
+      <div class="myplans-day-badge">${idx + 1}</div>
+      <div class="myplans-day-content">
+        <div class="myplans-day-row">
+          <span class="myplans-day-name">${day.name}</span>
+          <span class="myplans-day-meta">${exCount} ex · ${setCount} sets</span>
+        </div>
+        <div class="myplans-day-preview">${preview}</div>
+      </div>
+      <button class="myplans-day-chevron" onclick="window.showProgramBuilder('${programId}', '${day.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </div>
+  `;
+}
+
+function buildExercisePreview(exercises) {
+  if (!exercises || exercises.length === 0) return 'No exercises yet';
+  const names = exercises.map(e => e.name);
+  const shown = names.slice(0, 3).join(' · ');
+  const remaining = names.length - 3;
+  return remaining > 0 ? `${shown} · +${remaining}` : shown;
+}
+
+// ─── No-Program / TAYG Sections ───────────────────────────────────────────────
+
+function buildNoProgramSection() {
+  return `
+    <div class="myplans-section-label myplans-section-label--active">
+      <span class="myplans-active-dot"></span>
+      Active Program
+    </div>
+    <div class="myplans-no-program">No active program — set one from your library or create a new plan.</div>
+  `;
+}
+
+function buildTAYGSection() {
+  const count = (state.history || []).length;
+  return `
+    <div class="myplans-section-label myplans-section-label--active">
+      <span class="myplans-active-dot"></span>
+      Active Program
+    </div>
+    <div class="myplans-no-program">You're in Track As You Go mode — ${count} session${count !== 1 ? 's' : ''} logged. Switch to Structured in <button class="myplans-inline-link" onclick="window.switchTab('profile')">Profile</button> to use a program.</div>
+  `;
+}
+
+// ─── Library Section ──────────────────────────────────────────────────────────
+
+function buildLibrarySection(libraryPrograms) {
+  const customCount = (state.programs || []).filter(p => p.isCustom).length;
+  const atLimit = customCount >= MAX_CUSTOM_PROGRAMS;
+
+  const libraryCards = libraryPrograms.length === 0
+    ? `<div class="myplans-empty-library">No other plans saved yet</div>`
+    : libraryPrograms.map(buildLibraryCard).join('');
+
+  const createCta = atLimit
+    ? `<div class="myplans-at-limit">Max ${MAX_CUSTOM_PROGRAMS} custom plans reached — delete one to create another.</div>`
+    : `<button class="myplans-create-cta" onclick="window.showCreatePlanSheet()">
+        + Create a New Plan
+      </button>`;
+
+  return `
+    <div class="myplans-section-label">Your Library</div>
+    ${libraryCards}
+    ${createCta}
+  `;
+}
+
+function buildLibraryCard(prog) {
+  const id = prog.id;
+  return `
+    <div class="myplans-library-card" id="libcard-${id}">
+      <div class="myplans-library-main">
+        <div class="myplans-library-info">
+          <div class="myplans-library-name">${prog.name}</div>
+          <div class="myplans-library-subtitle">${prog.days.length} workout${prog.days.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="myplans-library-btns">
+          <button class="myplans-set-active-btn" onclick="window.setActiveProgram('${id}')">Set Active</button>
+          <button class="myplans-more-btn" onclick="window.myPlansToggleActions('${id}')" aria-label="More options">···</button>
         </div>
       </div>
-      <div class="program-item-actions">
-        <button class="prog-btn" onclick="window.showProgramBuilder('${prog.id}')">Edit</button>
-        <button class="prog-btn" onclick="window.duplicateProgram('${prog.id}')">Duplicate</button>
-        <button class="prog-btn danger" onclick="window.deleteProgram('${prog.id}')">Delete</button>
-        <button class="prog-btn activate" onclick="window.setActiveProgram('${prog.id}')">Activate</button>
+      <div class="myplans-library-secondary">
+        <button class="myplans-sec-btn" onclick="window.duplicateProgram('${id}')">Duplicate</button>
+        <button class="myplans-sec-btn myplans-sec-btn--danger" onclick="window.deleteProgram('${id}')">Delete</button>
       </div>
     </div>
   `;
 }
+
+export function myPlansToggleActions(programId) {
+  document.getElementById(`libcard-${programId}`)?.classList.toggle('myplans-library-card--open');
+}
+
+// ─── Create Plan Sheet ────────────────────────────────────────────────────────
 
 export function showCreatePlanSheet() {
   const modal = document.getElementById('calendarDayModal');
