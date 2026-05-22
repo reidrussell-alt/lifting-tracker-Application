@@ -179,6 +179,11 @@ window.startManualEntry = startManualEntry;
 // Register service worker (skipped on localhost)
 if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+
+  // When a new SW takes control, reload to pick up the fresh cache
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
 }
 
 loadData();
