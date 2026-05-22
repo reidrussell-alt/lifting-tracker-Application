@@ -3,6 +3,7 @@ import { todayDateString, formatDate, showToast, showConfirm } from './utils.js'
 import { startRestTimer, stopRestTimer } from './restTimer.js';
 import { isHealthKitAvailable, getCachedWeight } from './healthkit.js';
 import { openExerciseSelector } from './exerciseSelector.js';
+import { getExerciseById } from './exerciseLibrary.js';
 
 let _reorderMode = false;
 
@@ -280,7 +281,9 @@ export function renderSession() {
               <span>${ex.name}</span>
               <div style="display:flex;gap:6px;align-items:center;">
                 <span class="target-pill">${pillLabel}</span>
-                <button onclick="removeExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;" title="Remove exercise">×</button>
+                <button onclick="showExerciseOptions(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;padding:4px 6px;" title="Exercise options">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
               </div>
             </div>
             ${suggestion ? `
@@ -336,6 +339,9 @@ export function renderSession() {
             </button>
             <button class="icon-btn ${set.logged ? 'logged' : ''}" onclick="toggleSetLogged(${exIdx}, ${setIdx})">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="icon-btn remove-set-btn" onclick="removeSet(${exIdx}, ${setIdx})" title="Remove set">
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
           </div>
           ${(set.noteOpen || set.note) ? `
@@ -482,6 +488,82 @@ export function removeExercise(exIdx) {
     saveCurrentSession();
     renderSession();
   }, 'Remove');
+}
+
+export function showExerciseOptions(exIdx) {
+  closeExerciseOptions();
+  const ex = state.currentSession.exercises[exIdx];
+  const hasStarted = ex.sets.some(s => s.logged);
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'exOptionsBackdrop';
+  backdrop.className = 'ex-options-backdrop';
+  backdrop.onclick = (e) => { if (e.target === backdrop) closeExerciseOptions(); };
+
+  backdrop.innerHTML = `
+    <div class="ex-options-sheet">
+      <div class="ex-options-name">${ex.name}</div>
+      ${!hasStarted ? `
+        <button class="ex-options-btn ex-options-btn--replace" onclick="replaceExercise(${exIdx})">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;flex-shrink:0"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          Replace Exercise
+        </button>
+      ` : ''}
+      <button class="ex-options-btn ex-options-btn--remove" onclick="closeExerciseOptions(); removeExercise(${exIdx})">
+        Remove Exercise
+      </button>
+      <button class="ex-options-btn ex-options-btn--cancel" onclick="closeExerciseOptions()">
+        Cancel
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+}
+
+export function closeExerciseOptions() {
+  document.getElementById('exOptionsBackdrop')?.remove();
+}
+
+export function replaceExercise(exIdx) {
+  closeExerciseOptions();
+  const ex = state.currentSession.exercises[exIdx];
+  const libEx = getExerciseById(ex.id);
+  const customEx = !libEx ? (state.customExercises || []).find(e => e.id === ex.id) : null;
+  const initialFilter = (libEx || customEx)?.muscleGroup || 'All';
+
+  openExerciseSelector(newEx => {
+    state.currentSession.exercises[exIdx] = {
+      id: newEx.id,
+      name: newEx.name,
+      loadType: newEx.loadType,
+      repRange: '',
+      targetSets: 3,
+      note: '',
+      sets: Array.from({ length: 3 }, () => ({ weight: '', reps: '', logged: false, note: '', noteOpen: false }))
+    };
+    saveCurrentSession();
+    renderSession();
+  }, initialFilter);
+}
+
+export function removeSet(exIdx, setIdx) {
+  const ex = state.currentSession.exercises[exIdx];
+  if (ex.sets.length === 1) {
+    showConfirm(
+      'You are about to remove the entire exercise from this workout. Are you sure?',
+      () => {
+        state.currentSession.exercises.splice(exIdx, 1);
+        saveCurrentSession();
+        renderSession();
+      },
+      'Remove Exercise'
+    );
+    return;
+  }
+  ex.sets.splice(setIdx, 1);
+  saveCurrentSession();
+  renderSession();
 }
 
 export function showExercisePicker() {

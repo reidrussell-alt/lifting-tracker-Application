@@ -263,13 +263,13 @@ body {
 
 .set-row {
   display: grid;
-  grid-template-columns: 44px 1fr 1fr 44px 44px;
+  grid-template-columns: 44px 1fr 1fr 44px 44px 44px;
   gap: 8px; align-items: center;
   margin-bottom: 8px;
 }
 
 .set-row.bw-row {
-  grid-template-columns: 44px 1fr 44px 44px;
+  grid-template-columns: 44px 1fr 44px 44px 44px;
 }
 
 .set-num {
@@ -349,6 +349,8 @@ body {
 
 .icon-btn.logged svg { stroke: var(--bg); stroke-width: 3; }
 .icon-btn.has-note svg { stroke: var(--accent); }
+.icon-btn.remove-set-btn svg { stroke: var(--text-faint); stroke-width: 2.5; }
+.icon-btn.remove-set-btn:active svg { stroke: var(--push); }
 
 .note-row { margin-bottom: 8px; margin-left: 44px; }
 
@@ -1919,6 +1921,72 @@ body {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+
+/* ── Exercise options action sheet ── */
+.ex-options-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9998;
+  display: flex;
+  align-items: flex-end;
+  animation: exSelFadeIn 0.18s ease-out;
+}
+
+.ex-options-sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border-bright);
+  padding: 20px 16px 36px;
+  animation: exSelSlideUp 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ex-options-name {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ex-options-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-family: 'Inter Tight', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.ex-options-btn--replace {
+  color: var(--accent);
+  border-color: rgba(212, 255, 58, 0.3);
+  background: rgba(212, 255, 58, 0.06);
+}
+.ex-options-btn--replace:active { background: rgba(212, 255, 58, 0.12); }
+
+.ex-options-btn--remove {
+  color: var(--push);
+  border-color: rgba(255, 107, 53, 0.3);
+  background: rgba(255, 107, 53, 0.06);
+}
+.ex-options-btn--remove:active { background: rgba(255, 107, 53, 0.12); }
+
+.ex-options-btn--cancel {
+  color: var(--text-dim);
+  margin-bottom: 0;
+}
+.ex-options-btn--cancel:active { background: var(--surface-3); }
 
 .ex-sel-header {
   display: flex;

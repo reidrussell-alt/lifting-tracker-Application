@@ -9,10 +9,10 @@ let _showCreate = false;
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export function openExerciseSelector(onSelect) {
+export function openExerciseSelector(onSelect, initialFilter) {
   _onSelect = onSelect;
   _search = '';
-  _filter = 'All';
+  _filter = initialFilter || 'All';
   _showCreate = false;
   _mount();
 }
