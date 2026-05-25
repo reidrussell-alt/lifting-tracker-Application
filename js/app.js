@@ -4,7 +4,7 @@ import { renderProgress, updateMuscleGroupExercise, setChartRange, toggleHistory
 import { startSession, startTrackAsYouGoWorkout, abandonSession, finishSession, confirmFinishSession, closeModal, updateBw, updateSessionDate, updateSet, toggleNote, toggleSetLogged, addSet, removeExercise, updateExerciseNote, showExercisePicker, renderSession, leaveSession, toggleReorderMode, startManualEntry, showExerciseOptions, closeExerciseOptions, replaceExercise, removeSet } from './session.js';
 import { updateSessionBanner, hideSessionBanner, resumeSession } from './sessionBanner.js';
 import { renderSettings, editProfileName, switchTrainingMode, setActiveProgram, deleteProgram, duplicateProgram, activateTemplate, duplicateTemplate, editProgram, showCreateProgram, closeCreateProgram, confirmCreateProgram, toggleRestTimer, onRestDurationChange, toggleRestAlert, connectHealth, toggleHealthEnabled, toggleHealthSteps, toggleHealthWeight } from './settings.js';
-import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility } from './restTimer.js';
+import { initRestTimer, pauseTimer, skipTimer, resetTimer, toggleTimerExpanded, updatePillVisibility, reconcileTimer } from './restTimer.js';
 import { initHealthKit } from './healthkit.js';
 import { showOnboarding, hideOnboarding, obGoTo, obSelectMode, obSelectTemplate, obFinish, obProcessImport } from './onboarding.js';
 import { openExerciseSelector, closeExerciseSelector, exSelFilterMuscle, exSelSearch, exSelPickExercise, exSelShowCreate, exSelCancelCreate, exSelConfirmCreate } from './exerciseSelector.js';
@@ -205,4 +205,8 @@ window.addEventListener('resize', () => {
   if (document.getElementById('progressPage').classList.contains('active')) {
     renderProgress();
   }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') reconcileTimer();
 });

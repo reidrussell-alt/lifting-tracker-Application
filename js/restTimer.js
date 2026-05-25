@@ -12,7 +12,9 @@ const timerState = {
   duration: 120,
   status: 'RED',
   isPaused: false,
-  isExpanded: false
+  isExpanded: false,
+  startedAt: null,      // Date.now() when timer started or last resumed
+  pausedRemaining: null // remaining seconds frozen at the moment of pause
 };
 
 let _interval = null;
@@ -69,6 +71,8 @@ export function startRestTimer(exIdx, setIdx) {
   timerState.status = 'RED';
   timerState.isPaused = false;
   timerState.isExpanded = false;
+  timerState.startedAt = Date.now();
+  timerState.pausedRemaining = null;
 
   const pill = document.getElementById('restTimerPill');
   if (pill) pill.classList.remove('expanded');
@@ -94,7 +98,14 @@ export function pauseTimer() {
   if (timerState.isPaused) {
     clearInterval(_interval);
     _interval = null;
-  } else if (timerState.remainingTime > 0) {
+    // Freeze remaining at the wall-clock computed value
+    const elapsed = Math.floor((Date.now() - timerState.startedAt) / 1000);
+    timerState.pausedRemaining = Math.max(0, timerState.duration - elapsed);
+    timerState.remainingTime = timerState.pausedRemaining;
+  } else if (timerState.pausedRemaining > 0) {
+    // Shift startedAt forward so elapsed still equals duration - pausedRemaining
+    timerState.startedAt = Date.now() - (timerState.duration - timerState.pausedRemaining) * 1000;
+    timerState.pausedRemaining = null;
     clearInterval(_interval);
     _interval = setInterval(_tick, 1000);
   }
@@ -116,6 +127,8 @@ export function resetTimer() {
   clearInterval(_interval);
   _interval = null;
   timerState.remainingTime = timerState.duration;
+  timerState.startedAt = Date.now();
+  timerState.pausedRemaining = null;
   timerState.status = _getStatus(timerState.remainingTime, timerState.duration);
   timerState.isPaused = false;
   _updateDisplay();
@@ -133,9 +146,8 @@ export function toggleTimerExpanded() {
 
 function _tick() {
   if (timerState.isPaused) return;
-  if (timerState.remainingTime > 0) {
-    timerState.remainingTime--;
-  }
+  const elapsed = Math.floor((Date.now() - timerState.startedAt) / 1000);
+  timerState.remainingTime = Math.max(0, timerState.duration - elapsed);
   timerState.status = _getStatus(timerState.remainingTime, timerState.duration);
   if (timerState.remainingTime === 0) {
     clearInterval(_interval);
@@ -143,6 +155,23 @@ function _tick() {
     if (settings.alertEnabled && 'vibrate' in navigator) {
       navigator.vibrate([80, 40, 80]);
     }
+  }
+  _updateDisplay();
+}
+
+export function reconcileTimer() {
+  if (!timerState.isActive || timerState.isPaused) return;
+  const elapsed = Math.floor((Date.now() - timerState.startedAt) / 1000);
+  timerState.remainingTime = Math.max(0, timerState.duration - elapsed);
+  timerState.status = _getStatus(timerState.remainingTime, timerState.duration);
+  if (timerState.remainingTime === 0) {
+    clearInterval(_interval);
+    _interval = null;
+    if (settings.alertEnabled && 'vibrate' in navigator) {
+      navigator.vibrate([80, 40, 80]);
+    }
+  } else if (!_interval) {
+    _interval = setInterval(_tick, 1000);
   }
   _updateDisplay();
 }

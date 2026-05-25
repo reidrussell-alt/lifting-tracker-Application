@@ -374,9 +374,7 @@ export function renderSession() {
       </div></div>`;
     });
 
-    if (sess.isTrackAsYouGo) {
-      html += `<button class="add-exercise-fab" onclick="showExercisePicker()">+ Add Exercise</button>`;
-    }
+    html += `<button class="add-exercise-fab" onclick="showExercisePicker()">+ Add Exercise</button>`;
 
     html += `
       <button class="finish-btn" onclick="finishSession()">Finish & Save Session</button>
