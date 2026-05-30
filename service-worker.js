@@ -5,7 +5,6 @@ const ASSETS = [
   './index.html',
   './css/main.css',
   './js/app.js',
-  './js/plan.js',
   './js/session.js',
   './js/progress.js',
   './js/data.js',
