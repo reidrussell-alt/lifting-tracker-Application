@@ -1,10 +1,9 @@
 import { state, saveData, openResetModal } from './data.js';
 import { PROGRAM_TEMPLATES, buildProgramFromTemplate } from './programTemplates.js';
+import { MAX_CUSTOM_PROGRAMS } from './myplans.js';
 import { showToast, showConfirm, showPrompt } from './utils.js';
 import { getTimerSettings, setTimerEnabled, setTimerDuration, setTimerAlertEnabled, formatRestDuration } from './restTimer.js';
 import { isHealthKitAvailable, getHealthSettings, setHealthEnabled, setReadSteps, setReadWeight, requestHealthPermissions } from './healthkit.js';
-
-const MAX_CUSTOM_PROGRAMS = 5;
 
 function buildProfileStatsCard(profile) {
   const history = state.history || [];
@@ -322,7 +321,7 @@ export function setActiveProgram(programId) {
     state.programs.forEach(p => { p.isActive = false; });
     prog.isActive = true;
     saveData();
-    refreshProgramsList();
+    window.renderMyPlans();
     window.renderMyPlans();
     showToast(`Activated: ${prog.name}`, 'success');
   }, 'Activate');
@@ -340,7 +339,7 @@ export function deleteProgram(programId) {
     () => {
       state.programs = state.programs.filter(p => p.id !== programId);
       saveData();
-      refreshProgramsList();
+      window.renderMyPlans();
       window.renderMyPlans();
       showToast(`Deleted: ${prog.name}`);
     },
@@ -371,7 +370,7 @@ export function duplicateProgram(programId) {
       copy.createdAt = new Date().toISOString();
       state.programs.push(copy);
       saveData();
-      refreshProgramsList();
+      window.renderMyPlans();
       showToast(`Duplicated: ${copyName}`, 'success');
     },
     'Duplicate'
@@ -399,7 +398,7 @@ export function activateTemplate(templateId) {
       state.programs.push(newProg);
     }
     saveData();
-    refreshProgramsList();
+    window.renderMyPlans();
     window.renderMyPlans();
     showToast(`Activated: ${template.name}`, 'success');
   }, 'Activate');
@@ -422,7 +421,7 @@ export function duplicateTemplate(templateId) {
       const copy = buildProgramFromTemplate(copyName, template, false, true);
       state.programs.push(copy);
       saveData();
-      refreshProgramsList();
+      window.renderMyPlans();
       showToast(`Duplicated: ${copyName}`, 'success');
     },
     'Duplicate'
@@ -437,7 +436,7 @@ export function editProgram(programId) {
     if (!trimmed) { showToast('Name cannot be empty'); return; }
     prog.name = trimmed;
     saveData();
-    refreshProgramsList();
+    window.renderMyPlans();
     window.renderMyPlans();
     showToast('Program renamed ✓', 'success');
   });
@@ -502,9 +501,6 @@ export function confirmCreateProgram() {
   showToast(`Created: ${name}`, 'success');
 }
 
-function refreshProgramsList() {
-  if (window.renderMyPlans) window.renderMyPlans();
-}
 
 export function toggleRestTimer(enabled) {
   setTimerEnabled(enabled);

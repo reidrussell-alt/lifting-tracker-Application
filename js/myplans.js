@@ -1,7 +1,7 @@
 import { state } from './data.js';
 import { PROGRAM_TEMPLATES } from './programTemplates.js';
 
-const MAX_CUSTOM_PROGRAMS = 5;
+export const MAX_CUSTOM_PROGRAMS = 5;
 
 export function renderMyPlans() {
   const el = document.getElementById('myPlansPage');
@@ -43,10 +43,6 @@ function buildHeader() {
 // ─── Active Program Section ───────────────────────────────────────────────────
 
 function buildActiveSection(program) {
-  const daySets = program.days.reduce((s, d) =>
-    s + d.exercises.reduce((a, e) => a + (e.sets || 0), 0), 0);
-  void daySets;
-
   const dayCards = program.days.map((d, i) => buildDayCard(d, i, program.id)).join('');
 
   return `

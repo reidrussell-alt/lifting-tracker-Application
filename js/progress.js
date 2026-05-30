@@ -9,8 +9,9 @@ const FALLBACK_COLORS = ['#ff6b35','#d4ff3a','#3a9eff','#b86bff','#4ade80','#f47
 const CHART_RANGES_KEY = 'liftTrackerChartRanges';
 const RANGE_OPTIONS = [10, 20, 30, 'all'];
 
-// Populated on every renderProgress call — used by setChartRange without a full re-render
+// Populated on every renderProgress call — used by setChartRange and updateMuscleGroupExercise without a full re-render
 let _exerciseDataCache = {};
+let _muscleGroupStatsCache = {};
 let _chartRanges = {};
 
 // Draft state for session edit modal
@@ -29,7 +30,9 @@ function _loadChartRanges() {
 function _saveChartRanges() {
   try {
     localStorage.setItem(CHART_RANGES_KEY, JSON.stringify(_chartRanges));
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Failed to save chart ranges', e);
+  }
 }
 
 function _getRange(exId) {
@@ -136,6 +139,86 @@ function renderCalendar() {
   return html;
 }
 
+function _buildChartCardHtml(mg, exercisesInGroup) {
+  const meta = MUSCLE_GROUP_META[mg];
+  const selectedId = state.chartExerciseByGroup[mg];
+  const selectedData = exercisesInGroup[selectedId];
+  const trend = analyzeTrend(selectedData);
+
+  const opts = Object.entries(exercisesInGroup)
+    .sort((a, b) => b[1].sessions.length - a[1].sessions.length)
+    .map(([id, data]) => `<option value="${id}" ${id === selectedId ? 'selected' : ''}>${data.name} (${data.sessions.length})</option>`)
+    .join('');
+
+  const range = _getRange(selectedId);
+  const visibleCount = range === 'all' ? selectedData.sessions.length : Math.min(range, selectedData.sessions.length);
+  const rangeBtns = RANGE_OPTIONS.map(r => `
+    <button class="range-btn${range === r ? ' active' : ''}"
+            onclick="window.setChartRange('${mg}', '${selectedId}', ${r === 'all' ? "'all'" : r})"
+            aria-label="Show last ${r === 'all' ? 'all' : r} workouts">
+      ${r === 'all' ? 'All' : r}
+    </button>
+  `).join('');
+
+  return `
+    <div class="chart-card" id="chartCard_${mg}" style="border-left: 3px solid ${meta.color};">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="chart-title" style="color: ${meta.color};">${meta.label.toUpperCase()}</div>
+        <div class="trend-pill ${trend.cls}">${trend.label}</div>
+      </div>
+      <div class="chart-subtitle" id="chartSubtitle_${mg}">${_subtitleText(selectedData.loadType, visibleCount, selectedData.sessions.length)}</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <select class="chart-select" style="flex:1;margin-bottom:0;" onchange="updateMuscleGroupExercise('${mg}', this.value)">
+          ${opts}
+        </select>
+        <div class="range-selector" id="rangeSelector_${mg}">${rangeBtns}</div>
+      </div>
+      <div class="chart-canvas-wrap" id="chartWrap_${mg}"><canvas id="chart_${mg}"></canvas></div>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background: ${meta.color};"></span>${selectedData.loadType === 'bw' ? 'Max Reps' : 'Top Weight (lb)'}</span>
+      </div>
+      <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <span>Session History</span>
+          <span style="color: var(--text-dimmer); text-transform: none; letter-spacing: 0.5px; font-style: italic;">tap to expand</span>
+        </div>
+        <div class="exercise-history-block" style="margin-bottom: 0; border: 1px solid var(--border);">
+          <div class="exercise-history-header" onclick="toggleHistoryBlock(this)">
+            <div>
+              <div class="ex-history-name">${selectedData.name}</div>
+              <div class="ex-history-meta">${trend.summary}</div>
+            </div>
+            <div style="color: var(--text-dim); font-size: 16px;">▾</div>
+          </div>
+          <div class="history-detail">
+            ${selectedData.sessions.slice().reverse().map(s => `
+              <div class="history-session">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <div class="history-date" style="margin-bottom: 0;">${formatDate(s.date)} · ${s.dayTitle}</div>
+                  <button onclick="event.stopPropagation(); openEditModal(${s.sessionIdx}, ${s.exerciseIdx})"
+                          style="background: var(--surface-3); border: 1px solid var(--border); color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
+                    Edit
+                  </button>
+                </div>
+                <div class="history-sets">
+                  ${s.sets.map(set => {
+                    if (selectedData.loadType === 'bw') return `<span class="history-set-tag">${set.reps} reps</span>`;
+                    return `<span class="history-set-tag">${set.weight}lb × ${set.reps}</span>`;
+                  }).join('')}
+                </div>
+                ${s.sets.filter(set => set.note).map(set => `
+                  <div class="history-note">"${set.note}"</div>
+                `).join('')}
+                ${s.note ? `<div class="history-ex-note">📝 ${s.note}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export function renderProgress() {
   _loadChartRanges();
   const el = document.getElementById('progressPage');
@@ -236,88 +319,13 @@ export function renderProgress() {
     }
   });
 
+  // Cache for targeted single-card re-renders (updateMuscleGroupExercise)
+  _muscleGroupStatsCache = muscleGroupStats;
+
   MUSCLE_GROUP_ORDER.forEach(mg => {
     const exercisesInGroup = muscleGroupStats[mg] || {};
-    const exIds = Object.keys(exercisesInGroup);
-    if (exIds.length === 0) return;
-
-    const meta = MUSCLE_GROUP_META[mg];
-    const selectedId = state.chartExerciseByGroup[mg];
-    const selectedData = exercisesInGroup[selectedId];
-    const trend = analyzeTrend(selectedData);
-
-    const opts = Object.entries(exercisesInGroup)
-      .sort((a, b) => b[1].sessions.length - a[1].sessions.length)
-      .map(([id, data]) => `<option value="${id}" ${id === selectedId ? 'selected' : ''}>${data.name} (${data.sessions.length})</option>`)
-      .join('');
-
-    const range = _getRange(selectedId);
-    const visibleCount = range === 'all' ? selectedData.sessions.length : Math.min(range, selectedData.sessions.length);
-    const rangeBtns = RANGE_OPTIONS.map(r => `
-      <button class="range-btn${range === r ? ' active' : ''}"
-              onclick="window.setChartRange('${mg}', '${selectedId}', ${r === 'all' ? "'all'" : r})"
-              aria-label="Show last ${r === 'all' ? 'all' : r} workouts">
-        ${r === 'all' ? 'All' : r}
-      </button>
-    `).join('');
-
-    html += `
-      <div class="chart-card" style="border-left: 3px solid ${meta.color};">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <div class="chart-title" style="color: ${meta.color};">${meta.label.toUpperCase()}</div>
-          <div class="trend-pill ${trend.cls}">${trend.label}</div>
-        </div>
-        <div class="chart-subtitle" id="chartSubtitle_${mg}">${_subtitleText(selectedData.loadType, visibleCount, selectedData.sessions.length)}</div>
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <select class="chart-select" style="flex:1;margin-bottom:0;" onchange="updateMuscleGroupExercise('${mg}', this.value)">
-            ${opts}
-          </select>
-          <div class="range-selector" id="rangeSelector_${mg}">${rangeBtns}</div>
-        </div>
-        <div class="chart-canvas-wrap" id="chartWrap_${mg}"><canvas id="chart_${mg}"></canvas></div>
-        <div class="chart-legend">
-          <span><span class="legend-dot" style="background: ${meta.color};"></span>${selectedData.loadType === 'bw' ? 'Max Reps' : 'Top Weight (lb)'}</span>
-        </div>
-        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);">
-          <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <span>Session History</span>
-            <span style="color: var(--text-dimmer); text-transform: none; letter-spacing: 0.5px; font-style: italic;">tap to expand</span>
-          </div>
-          <div class="exercise-history-block" style="margin-bottom: 0; border: 1px solid var(--border);">
-            <div class="exercise-history-header" onclick="toggleHistoryBlock(this)">
-              <div>
-                <div class="ex-history-name">${selectedData.name}</div>
-                <div class="ex-history-meta">${trend.summary}</div>
-              </div>
-              <div style="color: var(--text-dim); font-size: 16px;">▾</div>
-            </div>
-            <div class="history-detail">
-              ${selectedData.sessions.slice().reverse().map(s => `
-                <div class="history-session">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div class="history-date" style="margin-bottom: 0;">${formatDate(s.date)} · ${s.dayTitle}</div>
-                    <button onclick="event.stopPropagation(); openEditModal(${s.sessionIdx}, ${s.exerciseIdx})"
-                            style="background: var(--surface-3); border: 1px solid var(--border); color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; cursor: pointer;">
-                      Edit
-                    </button>
-                  </div>
-                  <div class="history-sets">
-                    ${s.sets.map(set => {
-                      if (selectedData.loadType === 'bw') return `<span class="history-set-tag">${set.reps} reps</span>`;
-                      return `<span class="history-set-tag">${set.weight}lb × ${set.reps}</span>`;
-                    }).join('')}
-                  </div>
-                  ${s.sets.filter(set => set.note).map(set => `
-                    <div class="history-note">"${set.note}"</div>
-                  `).join('')}
-                  ${s.note ? `<div class="history-ex-note">📝 ${s.note}</div>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    if (Object.keys(exercisesInGroup).length === 0) return;
+    html += _buildChartCardHtml(mg, exercisesInGroup);
   });
 
   html += `
@@ -356,7 +364,21 @@ export function renderProgress() {
 
 export function updateMuscleGroupExercise(mg, id) {
   state.chartExerciseByGroup[mg] = id;
-  renderProgress();
+
+  const exercisesInGroup = _muscleGroupStatsCache[mg];
+  const card = document.getElementById('chartCard_' + mg);
+
+  if (!exercisesInGroup || !exercisesInGroup[id] || !card) {
+    renderProgress();
+    return;
+  }
+
+  card.outerHTML = _buildChartCardHtml(mg, exercisesInGroup);
+  _exerciseDataCache[id] = exercisesInGroup[id];
+
+  setTimeout(() => {
+    renderMuscleGroupChart(mg, exercisesInGroup[id], _getRange(id));
+  }, 50);
 }
 
 export function setChartRange(mg, exId, range) {
@@ -556,10 +578,12 @@ export function deleteEditSession() {
 
 // ===== CALENDAR DAY INTERACTION =====
 
+export function _liveSessionIdx(dateKey, dayId) {
+  return state.history.findIndex(s => s.date.split('T')[0] === dateKey && s.dayId === dayId);
+}
+
 export function openCalendarDay(dateKey) {
-  const sessionsOnDay = state.history
-    .map((s, idx) => ({ ...s, _idx: idx }))
-    .filter(s => s.date.split('T')[0] === dateKey);
+  const sessionsOnDay = state.history.filter(s => s.date.split('T')[0] === dateKey);
 
   const d = new Date(dateKey + 'T12:00:00');
   const dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -574,7 +598,6 @@ export function openCalendarDay(dateKey) {
 
   if (sessionsOnDay.length > 0) {
     sessionsOnDay.forEach(sess => {
-      const sessionIdx = sess._idx;
       const totalSets = sess.exercises.reduce((s, e) => s + e.sets.length, 0);
       html += `
         <div class="cday-session">
@@ -597,8 +620,8 @@ export function openCalendarDay(dateKey) {
             }).join('')}
           </div>
           <div class="cday-actions">
-            <button class="modal-btn" onclick="closeCalendarDay(); openSessionEdit(${sessionIdx})">Edit</button>
-            <button class="modal-btn cday-delete-btn" onclick="deleteSession(${sessionIdx})">Delete</button>
+            <button class="modal-btn" onclick="closeCalendarDay(); openSessionEdit(_liveSessionIdx('${dateKey}', '${sess.dayId}'))">Edit</button>
+            <button class="modal-btn cday-delete-btn" onclick="deleteSession(_liveSessionIdx('${dateKey}', '${sess.dayId}'))">Delete</button>
           </div>
         </div>
       `;
@@ -680,7 +703,7 @@ function _renderSessionEditBody() {
       <div class="edit-section" style="padding-bottom:4px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div class="edit-label" style="margin-bottom:0;">${ex.name}</div>
-          <button onclick="seDeleteExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;" title="Remove exercise">×</button>
+          <button onclick="sessionEditDeleteExercise(${exIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;" title="Remove exercise">×</button>
         </div>
     `;
     ex.sets.forEach((set, setIdx) => {
@@ -698,8 +721,8 @@ function _renderSessionEditBody() {
               <input type="number" inputmode="numeric" class="se-reps edit-input"
                      data-ex="${exIdx}" data-set="${setIdx}" value="${set.reps}" placeholder="reps">
             `}
+            <button onclick="sessionEditDeleteSet(${exIdx}, ${setIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;flex-shrink:0;" title="Remove set">×</button>
           </div>
-          <button onclick="seDeleteSet(${exIdx}, ${setIdx})" style="background:transparent;border:none;color:var(--text-dimmer);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;flex-shrink:0;" title="Remove set">×</button>
         </div>
       `;
     });
@@ -742,7 +765,7 @@ export function closeSessionEdit() {
   document.getElementById('sessionEditModal').classList.remove('active');
 }
 
-export function seDeleteExercise(exIdx) {
+export function sessionEditDeleteExercise(exIdx) {
   _flushDraftInputs();
   const ex = _seDraft.exercises[exIdx];
   showConfirm(`Remove "${ex.name}" from this workout?`, () => {
@@ -751,7 +774,7 @@ export function seDeleteExercise(exIdx) {
   }, 'Remove');
 }
 
-export function seDeleteSet(exIdx, setIdx) {
+export function sessionEditDeleteSet(exIdx, setIdx) {
   _flushDraftInputs();
   const ex = _seDraft.exercises[exIdx];
   if (ex.sets.length <= 1) {

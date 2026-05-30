@@ -28,7 +28,7 @@ let _settings = { ..._defaultSettings };
 let _permissionsGranted = false;
 let _cachedWeight = null; // { value: number, unit: string, date: Date } | null
 
-export function loadHealthSettings() {
+function loadHealthSettings() {
   try {
     const raw = localStorage.getItem(HEALTH_SETTINGS_KEY);
     if (raw) Object.assign(_settings, JSON.parse(raw));
@@ -38,7 +38,9 @@ export function loadHealthSettings() {
 function _save() {
   try {
     localStorage.setItem(HEALTH_SETTINGS_KEY, JSON.stringify(_settings));
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Failed to save health settings', e);
+  }
 }
 
 export function getHealthSettings() { return { ..._settings, permissionsGranted: _permissionsGranted }; }
@@ -92,7 +94,7 @@ export async function requestHealthPermissions() {
 }
 
 /** Non-prompting availability check. */
-export async function isHealthAvailable() {
+async function isHealthAvailable() {
   const plugin = _plugin();
   if (!plugin) return false;
   try {
@@ -123,7 +125,7 @@ function _sumSamples(resultData) {
 /**
  * Returns today's total step count as a rounded integer, or null on failure.
  */
-export async function getTodaySteps() {
+async function getTodaySteps() {
   const plugin = _plugin();
   if (!plugin || !_settings.readSteps) return null;
   try {
@@ -144,7 +146,7 @@ export async function getTodaySteps() {
 /**
  * Returns the step count for a specific Date, or null on failure.
  */
-export async function getStepsForDate(date) {
+async function getStepsForDate(date) {
   const plugin = _plugin();
   if (!plugin || !_settings.readSteps) return null;
   try {
@@ -165,7 +167,7 @@ export async function getStepsForDate(date) {
  * Returns an array of { date: 'YYYY-MM-DD', steps: number }
  * covering the last `days` calendar days, sorted oldest → newest.
  */
-export async function getStepsHistory(days = 30) {
+async function getStepsHistory(days = 30) {
   const plugin = _plugin();
   if (!plugin || !_settings.readSteps) return [];
   try {
@@ -233,7 +235,7 @@ export async function getMostRecentWeight() {
  * Returns weight history as [{ date: Date, weight: number, unit: string }]
  * sorted oldest → newest.
  */
-export async function getWeightHistory(days = 90) {
+async function getWeightHistory(days = 90) {
   const plugin = _plugin();
   if (!plugin || !_settings.readWeight) return [];
   try {

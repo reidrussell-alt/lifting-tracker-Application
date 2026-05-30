@@ -72,6 +72,7 @@ export const EXERCISE_LIBRARY = [
   { id: 'glute_ham_raise',    name: 'Glute-Ham Raise',             muscleGroup: 'Hamstrings', loadType: 'bw',     isCustom: false },
   { id: 'cable_pull_through', name: 'Cable Pull-Through',          muscleGroup: 'Hamstrings', loadType: 'weight', isCustom: false },
   { id: 'swiss_ball_curl',    name: 'Swiss Ball Leg Curl',         muscleGroup: 'Hamstrings', loadType: 'bw',     isCustom: false },
+  { id: 'back_extension',     name: 'Back Extension (45°)',        muscleGroup: 'Hamstrings', loadType: 'weight', isCustom: false },
 
   // GLUTES (9)
   { id: 'hip_thrust',         name: 'Barbell Hip Thrust',          muscleGroup: 'Glutes',     loadType: 'weight', isCustom: false },
@@ -151,6 +152,7 @@ export const EXERCISE_LIBRARY = [
   { id: 'bicycle_crunch',     name: 'Bicycle Crunch',              muscleGroup: 'Core',       loadType: 'bw',     isCustom: false },
   { id: 'side_plank',         name: 'Side Plank',                  muscleGroup: 'Core',       loadType: 'bw',     isCustom: false },
   { id: 'toes_to_bar',        name: 'Toes-to-Bar',                 muscleGroup: 'Core',       loadType: 'bw',     isCustom: false },
+  { id: 'cable_woodchopper',  name: 'Cable Woodchopper',           muscleGroup: 'Core',       loadType: 'weight', isCustom: false },
 
   // CALVES (5)
   { id: 'standing_calf_raise',name: 'Standing Calf Raise',         muscleGroup: 'Calves',     loadType: 'weight', isCustom: false },

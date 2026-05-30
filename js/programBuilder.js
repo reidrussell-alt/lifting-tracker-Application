@@ -209,13 +209,13 @@ export function pbSaveProgram() {
 }
 
 // sets/reps counter actions
-export function pbIncrSets()    { _incr('pbSetsValue',  1, 10); }
+export function pbIncrSets()    { _incr('pbSetsValue',  10); }
 export function pbDecrSets()    { _decr('pbSetsValue',  1); }
-export function pbIncrRepMin()  { _incr('pbRepMin',     1, 50); }
+export function pbIncrRepMin()  { _incr('pbRepMin',     50); }
 export function pbDecrRepMin()  { _decr('pbRepMin',     1); }
-export function pbIncrRepMax()  { _incr('pbRepMax',     1, 50); }
+export function pbIncrRepMax()  { _incr('pbRepMax',     50); }
 export function pbDecrRepMax()  { _decr('pbRepMax',     1); }
-export function pbIncrFixed()   { _incr('pbFixedReps',  1, 50); }
+export function pbIncrFixed()   { _incr('pbFixedReps',  50); }
 export function pbDecrFixed()   { _decr('pbFixedReps',  1); }
 
 export function pbConfirmSetsReps() {
@@ -347,7 +347,7 @@ function _syncSrCounters() {
   if (fix)  _sr.fixedReps = parseInt(fix.textContent, 10) || _sr.fixedReps;
 }
 
-function _incr(id, min, max) {
+function _incr(id, max) {
   const el = document.getElementById(id);
   if (!el) return;
   const v = parseInt(el.textContent, 10);

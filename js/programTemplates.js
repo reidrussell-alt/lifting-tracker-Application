@@ -170,10 +170,6 @@ export const PROGRAM_TEMPLATES = [
   }
 ];
 
-export function getTemplateById(id) {
-  return PROGRAM_TEMPLATES.find(t => t.id === id);
-}
-
 export function buildProgramFromTemplate(name, template, isActive = false, isCustom = false) {
   return {
     id: `program_${Date.now()}`,

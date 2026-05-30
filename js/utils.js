@@ -13,12 +13,17 @@ export function isoDateOnly(iso) {
 
 export function formatDate(iso) {
   const d = new Date(iso);
-  const now = new Date();
-  const diff = (now - d) / (1000 * 60 * 60 * 24);
-  if (diff < 1) return 'Today';
-  if (diff < 2) return 'Yesterday';
-  if (diff < 7) return `${Math.floor(diff)}d ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const dStr = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  if (dStr === todayStr) return 'Today';
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const yStr = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate()}`;
+  if (dStr === yStr) return 'Yesterday';
+  const diffDays = Math.round((today.setHours(0,0,0,0) - d.setHours(0,0,0,0)) / 86400000);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export function formatDateShort(iso) {

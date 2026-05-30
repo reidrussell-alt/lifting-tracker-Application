@@ -334,10 +334,10 @@ export function renderSession() {
                        onchange="updateSet(${exIdx}, ${setIdx}, 'reps', this.value)">
               </div>
             `}
-            <button class="${noteBtnCls}" onclick="toggleNote(${exIdx}, ${setIdx})" title="Note">
+            <button class="${noteBtnCls} icon-btn--note" onclick="toggleNote(${exIdx}, ${setIdx})" title="Note">
               <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
             </button>
-            <button class="icon-btn ${set.logged ? 'logged' : ''}" onclick="toggleSetLogged(${exIdx}, ${setIdx})">
+            <button class="icon-btn icon-btn--check ${set.logged ? 'logged' : ''}" onclick="toggleSetLogged(${exIdx}, ${setIdx})">
               <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
             <button class="icon-btn remove-set-btn" onclick="removeSet(${exIdx}, ${setIdx})" title="Remove set">
@@ -436,7 +436,7 @@ export function updateSet(exIdx, setIdx, field, value) {
     const row = document.querySelector(`.set-row[data-ex="${exIdx}"][data-set="${setIdx}"]`);
     if (row) {
       row.classList.add('logged');
-      const checkBtn = row.querySelectorAll('.icon-btn')[1];
+      const checkBtn = row.querySelector('.icon-btn--check');
       if (checkBtn) checkBtn.classList.add('logged');
     }
     startRestTimer(exIdx, setIdx);
@@ -458,7 +458,7 @@ export function toggleSetLogged(exIdx, setIdx) {
   if (!row) { renderSession(); return; }
 
   row.classList.toggle('logged', set.logged);
-  const checkBtn = row.querySelectorAll('.icon-btn')[1];
+  const checkBtn = row.querySelector('.icon-btn--check');
   if (checkBtn) checkBtn.classList.toggle('logged', set.logged);
 
   const targetSets = ex.targetSets || ex.sets.length;
@@ -644,6 +644,7 @@ export function confirmFinishSession() {
 
 export function updateExerciseNote(exIdx, value) {
   state.currentSession.exercises[exIdx].note = value;
+  saveCurrentSession();
 }
 
 export function closeModal() {

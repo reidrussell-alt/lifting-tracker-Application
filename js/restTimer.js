@@ -20,11 +20,13 @@ const timerState = {
 let _interval = null;
 const CIRC = 2 * Math.PI * 28; // r=28 → ~175.93
 
-export function loadTimerSettings() {
+function loadTimerSettings() {
   try {
     const raw = localStorage.getItem(TIMER_SETTINGS_KEY);
     if (raw) Object.assign(settings, JSON.parse(raw));
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Failed to load timer settings', e);
+  }
 }
 
 function _saveTimerSettings() {
@@ -176,11 +178,6 @@ export function reconcileTimer() {
   _updateDisplay();
 }
 
-function _formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
 
 function _updateDisplay() {
   const display = document.getElementById('timerDisplay');
@@ -192,7 +189,7 @@ function _updateDisplay() {
 
   const { remainingTime, duration, status, isPaused } = timerState;
 
-  display.textContent = isPaused ? '⏸' : (remainingTime === 0 ? 'READY' : _formatTime(remainingTime));
+  display.textContent = isPaused ? '⏸' : (remainingTime === 0 ? 'READY' : formatRestDuration(remainingTime));
 
   if (progressCircle) {
     const pct = duration > 0 ? remainingTime / duration : 0;
@@ -234,5 +231,5 @@ export function initRestTimer() {
 export function formatRestDuration(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return s === 0 ? `${m}:00` : `${m}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }

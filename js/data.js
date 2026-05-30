@@ -13,7 +13,7 @@ export const state = {
 
 const STORAGE_KEY = 'liftTrackerData';
 const SESSION_KEY = 'liftTrackerSession';
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 export function saveCurrentSession() {
   try {
@@ -87,7 +87,7 @@ export function migrateV2ToV3(oldData) {
   };
 }
 
-function migrateV3ToV4(data) {
+export function migrateV3ToV4(data) {
   const remap = { leg_ext_a: 'leg_extension', leg_ext_b: 'leg_extension' };
   const remapId = id => remap[id] ?? id;
 
@@ -108,19 +108,68 @@ function migrateV3ToV4(data) {
   };
 }
 
+export function migrateV4ToV5(data) {
+  // Remaps legacy program.js exercise IDs to their canonical exerciseLibrary.js equivalents.
+  // This allows getLastPerformance, getSuggestion, and chart lookups to work correctly
+  // for history logged under the original 4-day default program.
+  const remap = {
+    pull_ups:         'pullups',
+    t_bar:            'tbar_row',
+    shoulder_db_press:'db_shoulder_press',
+    lateral_raises_a: 'lateral_raise',
+    barbell_curl_a:   'barbell_curl',
+    tricep_ext_a:     'overhead_tricep_ext',
+    bulgarian_split:  'bulgarian_split_squat',
+    leg_curls_a:      'leg_curl',
+    standing_calf:    'standing_calf_raise',
+    machine_t:        'chest_supported_row',
+    db_press_b:       'db_shoulder_press',
+    cable_crossover:  'cable_fly',
+    lateral_raises_b: 'machine_lateral_raise',
+    barbell_curl_b:   'barbell_curl',
+    overhead_tri:     'overhead_tricep_ext',
+    seated_calf:      'seated_calf_raise',
+    // back_extension and cable_woodchopper are now in EXERCISE_LIBRARY; IDs unchanged
+  };
+  const remapId = id => remap[id] ?? id;
+
+  return {
+    ...data,
+    version: 5,
+    programs: (data.programs || []).map(prog => ({
+      ...prog,
+      days: (prog.days || []).map(day => ({
+        ...day,
+        exercises: (day.exercises || []).map(ex => ({ ...ex, id: remapId(ex.id) }))
+      }))
+    })),
+    history: (data.history || []).map(session => ({
+      ...session,
+      exercises: (session.exercises || []).map(ex => ({ ...ex, id: remapId(ex.id) }))
+    }))
+  };
+}
+
 export function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     let data = JSON.parse(raw);
 
+    let migrated = false;
     if (!data.version || data.version < 3) {
       data = migrateV2ToV3(data);
+      migrated = true;
     }
     if (data.version < 4) {
       data = migrateV3ToV4(data);
+      migrated = true;
     }
-    if (!data.version || data.version < SCHEMA_VERSION) {
+    if (data.version < 5) {
+      data = migrateV4ToV5(data);
+      migrated = true;
+    }
+    if (migrated) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
@@ -179,6 +228,12 @@ export function importData(event, onSuccess) {
       if (!data.version || data.version < 3) {
         data = migrateV2ToV3(data);
       }
+      if (data.version < 4) {
+        data = migrateV3ToV4(data);
+      }
+      if (data.version < 5) {
+        data = migrateV4ToV5(data);
+      }
       const incomingCount = data.history.length;
       const currentCount = state.history.length;
       const confirmMsg = currentCount === 0
@@ -210,8 +265,14 @@ export function closeResetModal() {
 
 export function confirmReset() {
   state.history = [];
+  state.programs = [];
+  state.profile = null;
+  state.customExercises = [];
   state.currentSession = null;
+  state.chartExerciseByGroup = {};
+  state.editing = null;
   saveData();
+  saveCurrentSession();
   closeResetModal();
   showToast('All data cleared');
 }

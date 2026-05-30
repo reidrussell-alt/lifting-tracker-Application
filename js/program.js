@@ -76,7 +76,7 @@ const CHART_GROUP_NORM = {
 const PROGRAM_EXERCISE_GROUPS = {
   dips: 'chest', pec_deck_laying: 'chest', cable_crossover: 'chest', lateral_bench_machine: 'chest',
   pull_ups: 'back', t_bar: 'back', machine_t: 'back', iso_lateral_low_row: 'back',
-  seated_row: 'back', rope_pulldown: 'back', upright_rows: 'back', back_extension: 'back',
+  seated_row: 'back', rope_pulldown: 'back', upright_rows: 'back',
   shoulder_db_press: 'shoulders', db_press_b: 'shoulders',
   lateral_raises_a: 'shoulders', lateral_raises_b: 'shoulders', iso_shoulder_press: 'shoulders',
   barbell_curl_a: 'biceps', barbell_curl_b: 'biceps',
